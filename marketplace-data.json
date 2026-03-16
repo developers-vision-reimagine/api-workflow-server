@@ -1,0 +1,1164 @@
+[
+  {
+    "id": "mp-1700000000001",
+    "name": "AI Product Photographer",
+    "description": "Upload any product photo and get studio-quality e-commerce images with perfect lighting, shadows, and backgrounds. Ideal for Shopify, Amazon, and social media listings.",
+    "category": "E-Commerce",
+    "tags": [
+      "product-photo",
+      "e-commerce",
+      "background-removal",
+      "AI-generated"
+    ],
+    "exampleImages": [
+      {
+        "data": "",
+        "caption": "Product on white background"
+      },
+      {
+        "data": "",
+        "caption": "Lifestyle product shot"
+      }
+    ],
+    "creatorName": "Sirio",
+    "creatorId": "anon-sirio-001",
+    "nodes": [
+      {
+        "id": "mp1-input",
+        "type": "inputNode",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "data": {
+          "label": "Request - Inputs",
+          "nodeNumber": "1",
+          "prompt": "",
+          "initialFields": [
+            "image_urls",
+            "prompt",
+            "aspect_ratio",
+            "resolution"
+          ],
+          "fieldValues": {
+            "aspect_ratio": "1:1",
+            "resolution": "2K"
+          }
+        }
+      },
+      {
+        "id": "mp1-analyzer",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": 20
+        },
+        "data": {
+          "label": "Claude Sonnet 4",
+          "nodeNumber": "2",
+          "systemDirections": "Analyze the product in this image. Identify the product type, material, color, shape, and any distinguishing features. Output a detailed prompt for recreating this product on a pure white studio background."
+        }
+      },
+      {
+        "id": "mp1-generator",
+        "type": "generator",
+        "position": {
+          "x": 900,
+          "y": 20
+        },
+        "data": {
+          "label": "Nano Banana 2 Edit",
+          "nodeNumber": "3"
+        }
+      },
+      {
+        "id": "mp1-response",
+        "type": "response",
+        "position": {
+          "x": 1320,
+          "y": 80
+        },
+        "data": {
+          "label": "Response - Output",
+          "nodeNumber": "4",
+          "responseFields": [
+            {
+              "id": "mp1-gen-out",
+              "label": "image",
+              "color": "#ec4899",
+              "source": {
+                "nodeId": "mp1-generator",
+                "nodeLabel": "Nano Banana 2 Edit",
+                "handle": "image"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mp1e1",
+        "source": "mp1-input",
+        "sourceHandle": "image_urls",
+        "target": "mp1-analyzer",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp1e2",
+        "source": "mp1-analyzer",
+        "sourceHandle": "analysis-out",
+        "target": "mp1-generator",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp1e3",
+        "source": "mp1-input",
+        "sourceHandle": "image_urls",
+        "target": "mp1-generator",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      },
+      {
+        "id": "mp1e4",
+        "source": "mp1-input",
+        "sourceHandle": "aspect_ratio",
+        "target": "mp1-generator",
+        "targetHandle": "aspect-ratio-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp1e5",
+        "source": "mp1-input",
+        "sourceHandle": "resolution",
+        "target": "mp1-generator",
+        "targetHandle": "resolution-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp1e6",
+        "source": "mp1-generator",
+        "sourceHandle": "output",
+        "target": "mp1-response",
+        "targetHandle": "images-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      }
+    ],
+    "visibility": "closed",
+    "pricingType": "paid",
+    "marginPercent": 40,
+    "baseCost": 0.03,
+    "pricePerRun": 0.042,
+    "uses": 238,
+    "rating": 4.7,
+    "ratingCount": 58,
+    "publishedAt": "2025-11-15T10:30:00.000Z"
+  },
+  {
+    "id": "mp-1700000000002",
+    "name": "Anime Style Transfer",
+    "description": "Transform any photo into stunning anime-style artwork. Supports multiple anime aesthetics from Studio Ghibli to modern shonen styles with faithful color preservation.",
+    "category": "Art & Creative",
+    "tags": [
+      "anime",
+      "style-transfer",
+      "art",
+      "AI-generated"
+    ],
+    "exampleImages": [
+      {
+        "data": "",
+        "caption": "Ghibli-style portrait"
+      },
+      {
+        "data": "",
+        "caption": "Shonen action pose"
+      }
+    ],
+    "creatorName": "ArtFlow",
+    "creatorId": "anon-artflow-042",
+    "nodes": [
+      {
+        "id": "mp2-input",
+        "type": "inputNode",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "data": {
+          "label": "Request - Inputs",
+          "nodeNumber": "1",
+          "prompt": "",
+          "initialFields": [
+            "image_urls",
+            "prompt",
+            "aspect_ratio",
+            "resolution"
+          ],
+          "fieldValues": {
+            "aspect_ratio": "1:1",
+            "resolution": "2K"
+          }
+        }
+      },
+      {
+        "id": "mp2-analyzer",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": 20
+        },
+        "data": {
+          "label": "Claude Sonnet 4",
+          "nodeNumber": "2",
+          "systemDirections": "Analyze the uploaded photo. Describe the subject, pose, expression, clothing, background, and lighting. Then create a detailed anime-style prompt preserving all details but converting to anime art aesthetic."
+        }
+      },
+      {
+        "id": "mp2-adapter",
+        "type": "promptAdapter",
+        "position": {
+          "x": 450,
+          "y": 280
+        },
+        "data": {
+          "label": "Claude Haiku 4.5",
+          "nodeNumber": "3",
+          "systemDirections": "Combine the image analysis with the user prompt to create a cohesive anime-style image generation prompt. Emphasize anime art characteristics: large expressive eyes, clean line work, vibrant colors, cel-shading."
+        }
+      },
+      {
+        "id": "mp2-generator",
+        "type": "generator",
+        "position": {
+          "x": 900,
+          "y": 20
+        },
+        "data": {
+          "label": "Nano Banana 2 Edit",
+          "nodeNumber": "4"
+        }
+      },
+      {
+        "id": "mp2-response",
+        "type": "response",
+        "position": {
+          "x": 1320,
+          "y": 80
+        },
+        "data": {
+          "label": "Response - Output",
+          "nodeNumber": "5",
+          "responseFields": [
+            {
+              "id": "mp2-gen-out",
+              "label": "image",
+              "color": "#ec4899",
+              "source": {
+                "nodeId": "mp2-generator",
+                "nodeLabel": "Nano Banana 2 Edit",
+                "handle": "image"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mp2e1",
+        "source": "mp2-input",
+        "sourceHandle": "image_urls",
+        "target": "mp2-analyzer",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp2e2",
+        "source": "mp2-analyzer",
+        "sourceHandle": "analysis-out",
+        "target": "mp2-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp2e3",
+        "source": "mp2-input",
+        "sourceHandle": "prompt",
+        "target": "mp2-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#6366f1"
+        }
+      },
+      {
+        "id": "mp2e4",
+        "source": "mp2-adapter",
+        "sourceHandle": "prompt-out",
+        "target": "mp2-generator",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp2e5",
+        "source": "mp2-input",
+        "sourceHandle": "image_urls",
+        "target": "mp2-generator",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      },
+      {
+        "id": "mp2e6",
+        "source": "mp2-input",
+        "sourceHandle": "aspect_ratio",
+        "target": "mp2-generator",
+        "targetHandle": "aspect-ratio-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp2e7",
+        "source": "mp2-generator",
+        "sourceHandle": "output",
+        "target": "mp2-response",
+        "targetHandle": "images-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      }
+    ],
+    "visibility": "open",
+    "pricingType": "free",
+    "marginPercent": 0,
+    "baseCost": 0.025,
+    "pricePerRun": 0,
+    "uses": 1244,
+    "rating": 4.9,
+    "ratingCount": 312,
+    "publishedAt": "2025-10-02T08:15:00.000Z"
+  },
+  {
+    "id": "mp-1700000000003",
+    "name": "Fashion Lookbook Generator",
+    "description": "Generate complete fashion lookbook pages from a single garment photo. Includes model placement, styled backgrounds, and editorial-grade composition for brand presentations.",
+    "category": "Fashion",
+    "tags": [
+      "fashion",
+      "lookbook",
+      "branding",
+      "composition"
+    ],
+    "exampleImages": [
+      {
+        "data": "",
+        "caption": "Editorial lookbook page"
+      }
+    ],
+    "creatorName": "ModeStudio",
+    "creatorId": "anon-mode-107",
+    "nodes": [
+      {
+        "id": "mp3-input",
+        "type": "inputNode",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "data": {
+          "label": "Request - Inputs",
+          "nodeNumber": "1",
+          "prompt": "",
+          "initialFields": [
+            "image_urls",
+            "prompt",
+            "aspect_ratio",
+            "resolution"
+          ],
+          "fieldValues": {
+            "aspect_ratio": "3:4",
+            "resolution": "2K"
+          }
+        }
+      },
+      {
+        "id": "mp3-analyzer",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": 20
+        },
+        "data": {
+          "label": "Claude Sonnet 4",
+          "nodeNumber": "2",
+          "systemDirections": "Analyze the garment in the uploaded image. Describe style, silhouette, fabric, color palette, target demographic, and brand aesthetic. Generate a lookbook concept prompt."
+        }
+      },
+      {
+        "id": "mp3-adapter",
+        "type": "promptAdapter",
+        "position": {
+          "x": 450,
+          "y": 280
+        },
+        "data": {
+          "label": "Claude Haiku 4.5",
+          "nodeNumber": "3",
+          "systemDirections": "Create a fashion editorial prompt from the garment analysis. Include model styling, pose direction, background setting, lighting mood, and brand-aligned composition."
+        }
+      },
+      {
+        "id": "mp3-generator",
+        "type": "generator",
+        "position": {
+          "x": 900,
+          "y": 20
+        },
+        "data": {
+          "label": "Nano Banana 2 Edit",
+          "nodeNumber": "4"
+        }
+      },
+      {
+        "id": "mp3-response",
+        "type": "response",
+        "position": {
+          "x": 1320,
+          "y": 80
+        },
+        "data": {
+          "label": "Response - Output",
+          "nodeNumber": "5",
+          "responseFields": [
+            {
+              "id": "mp3-gen-out",
+              "label": "image",
+              "color": "#ec4899",
+              "source": {
+                "nodeId": "mp3-generator",
+                "nodeLabel": "Nano Banana 2 Edit",
+                "handle": "image"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mp3e1",
+        "source": "mp3-input",
+        "sourceHandle": "image_urls",
+        "target": "mp3-analyzer",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp3e2",
+        "source": "mp3-analyzer",
+        "sourceHandle": "analysis-out",
+        "target": "mp3-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp3e3",
+        "source": "mp3-input",
+        "sourceHandle": "prompt",
+        "target": "mp3-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#6366f1"
+        }
+      },
+      {
+        "id": "mp3e4",
+        "source": "mp3-adapter",
+        "sourceHandle": "prompt-out",
+        "target": "mp3-generator",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp3e5",
+        "source": "mp3-input",
+        "sourceHandle": "image_urls",
+        "target": "mp3-generator",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      },
+      {
+        "id": "mp3e6",
+        "source": "mp3-input",
+        "sourceHandle": "aspect_ratio",
+        "target": "mp3-generator",
+        "targetHandle": "aspect-ratio-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp3e7",
+        "source": "mp3-generator",
+        "sourceHandle": "output",
+        "target": "mp3-response",
+        "targetHandle": "images-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      }
+    ],
+    "visibility": "closed",
+    "pricingType": "paid",
+    "marginPercent": 60,
+    "baseCost": 0.04,
+    "pricePerRun": 0.064,
+    "uses": 89,
+    "rating": 4.5,
+    "ratingCount": 22,
+    "publishedAt": "2025-12-01T14:45:00.000Z"
+  },
+  {
+    "id": "mp-1700000000004",
+    "name": "Portrait Retoucher Pro",
+    "description": "Professional-grade portrait retouching pipeline. Smooths skin naturally, enhances eyes, balances lighting, and upscales to print-ready resolution while keeping the subject looking authentic.",
+    "category": "Portrait",
+    "tags": [
+      "portrait",
+      "retouching",
+      "photo-editing",
+      "headshot"
+    ],
+    "exampleImages": [
+      {
+        "data": "",
+        "caption": "Before & after portrait"
+      },
+      {
+        "data": "",
+        "caption": "Headshot enhancement"
+      }
+    ],
+    "creatorName": "PixelPerfect",
+    "creatorId": "anon-pixel-088",
+    "nodes": [
+      {
+        "id": "mp4-input",
+        "type": "inputNode",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "data": {
+          "label": "Request - Inputs",
+          "nodeNumber": "1",
+          "prompt": "",
+          "initialFields": [
+            "image_urls",
+            "prompt",
+            "aspect_ratio",
+            "resolution"
+          ],
+          "fieldValues": {
+            "aspect_ratio": "3:4",
+            "resolution": "4K"
+          }
+        }
+      },
+      {
+        "id": "mp4-analyzer",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": 20
+        },
+        "data": {
+          "label": "Claude Sonnet 4",
+          "nodeNumber": "2",
+          "systemDirections": "Analyze this portrait photo. Assess skin quality, lighting direction, eye brightness, facial symmetry, and overall composition. Generate a retouching prompt that preserves authenticity while enhancing quality."
+        }
+      },
+      {
+        "id": "mp4-generator",
+        "type": "generator",
+        "position": {
+          "x": 900,
+          "y": 20
+        },
+        "data": {
+          "label": "Nano Banana 2 Edit",
+          "nodeNumber": "3"
+        }
+      },
+      {
+        "id": "mp4-response",
+        "type": "response",
+        "position": {
+          "x": 1320,
+          "y": 80
+        },
+        "data": {
+          "label": "Response - Output",
+          "nodeNumber": "4",
+          "responseFields": [
+            {
+              "id": "mp4-gen-out",
+              "label": "image",
+              "color": "#ec4899",
+              "source": {
+                "nodeId": "mp4-generator",
+                "nodeLabel": "Nano Banana 2 Edit",
+                "handle": "image"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mp4e1",
+        "source": "mp4-input",
+        "sourceHandle": "image_urls",
+        "target": "mp4-analyzer",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp4e2",
+        "source": "mp4-analyzer",
+        "sourceHandle": "analysis-out",
+        "target": "mp4-generator",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp4e3",
+        "source": "mp4-input",
+        "sourceHandle": "image_urls",
+        "target": "mp4-generator",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      },
+      {
+        "id": "mp4e4",
+        "source": "mp4-input",
+        "sourceHandle": "aspect_ratio",
+        "target": "mp4-generator",
+        "targetHandle": "aspect-ratio-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp4e5",
+        "source": "mp4-input",
+        "sourceHandle": "resolution",
+        "target": "mp4-generator",
+        "targetHandle": "resolution-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp4e6",
+        "source": "mp4-generator",
+        "sourceHandle": "output",
+        "target": "mp4-response",
+        "targetHandle": "images-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      }
+    ],
+    "visibility": "open",
+    "pricingType": "paid",
+    "marginPercent": 30,
+    "baseCost": 0.05,
+    "pricePerRun": 0.065,
+    "uses": 567,
+    "rating": 4.8,
+    "ratingCount": 143,
+    "publishedAt": "2025-09-20T11:00:00.000Z"
+  },
+  {
+    "id": "mp-1700000000005",
+    "name": "Background Remover & Replace",
+    "description": "Instantly remove backgrounds from any photo and replace them with AI-generated scenes. Perfect for product shots, profile pictures, and creative composites.",
+    "category": "Photography",
+    "tags": [
+      "background-removal",
+      "photo-editing",
+      "composition",
+      "product-photo"
+    ],
+    "exampleImages": [
+      {
+        "data": "",
+        "caption": "Background removed"
+      },
+      {
+        "data": "",
+        "caption": "Scene replacement"
+      }
+    ],
+    "creatorName": "CleanCut",
+    "creatorId": "anon-clean-055",
+    "nodes": [
+      {
+        "id": "mp5-input",
+        "type": "inputNode",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "data": {
+          "label": "Request - Inputs",
+          "nodeNumber": "1",
+          "prompt": "",
+          "initialFields": [
+            "image_urls",
+            "prompt",
+            "aspect_ratio",
+            "resolution"
+          ],
+          "fieldValues": {
+            "aspect_ratio": "1:1",
+            "resolution": "2K"
+          }
+        }
+      },
+      {
+        "id": "mp5-analyzer",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": 20
+        },
+        "data": {
+          "label": "Claude Sonnet 4",
+          "nodeNumber": "2",
+          "systemDirections": "Analyze the subject in this image. Describe the foreground subject in detail (shape, color, texture, pose). Then create a prompt to place this subject on a new background as specified by the user prompt."
+        }
+      },
+      {
+        "id": "mp5-adapter",
+        "type": "promptAdapter",
+        "position": {
+          "x": 450,
+          "y": 280
+        },
+        "data": {
+          "label": "Claude Haiku 4.5",
+          "nodeNumber": "3",
+          "systemDirections": "Combine the subject analysis with the desired background scene. Create a cohesive image generation prompt that seamlessly composites the subject into the new scene with matching lighting and perspective."
+        }
+      },
+      {
+        "id": "mp5-generator",
+        "type": "generator",
+        "position": {
+          "x": 900,
+          "y": 20
+        },
+        "data": {
+          "label": "Nano Banana 2 Edit",
+          "nodeNumber": "4"
+        }
+      },
+      {
+        "id": "mp5-response",
+        "type": "response",
+        "position": {
+          "x": 1320,
+          "y": 80
+        },
+        "data": {
+          "label": "Response - Output",
+          "nodeNumber": "5",
+          "responseFields": [
+            {
+              "id": "mp5-gen-out",
+              "label": "image",
+              "color": "#ec4899",
+              "source": {
+                "nodeId": "mp5-generator",
+                "nodeLabel": "Nano Banana 2 Edit",
+                "handle": "image"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mp5e1",
+        "source": "mp5-input",
+        "sourceHandle": "image_urls",
+        "target": "mp5-analyzer",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp5e2",
+        "source": "mp5-analyzer",
+        "sourceHandle": "analysis-out",
+        "target": "mp5-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp5e3",
+        "source": "mp5-input",
+        "sourceHandle": "prompt",
+        "target": "mp5-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#6366f1"
+        }
+      },
+      {
+        "id": "mp5e4",
+        "source": "mp5-adapter",
+        "sourceHandle": "prompt-out",
+        "target": "mp5-generator",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp5e5",
+        "source": "mp5-input",
+        "sourceHandle": "image_urls",
+        "target": "mp5-generator",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      },
+      {
+        "id": "mp5e6",
+        "source": "mp5-input",
+        "sourceHandle": "aspect_ratio",
+        "target": "mp5-generator",
+        "targetHandle": "aspect-ratio-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp5e7",
+        "source": "mp5-generator",
+        "sourceHandle": "output",
+        "target": "mp5-response",
+        "targetHandle": "images-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      }
+    ],
+    "visibility": "open",
+    "pricingType": "free",
+    "marginPercent": 0,
+    "baseCost": 0.02,
+    "pricePerRun": 0,
+    "uses": 2135,
+    "rating": 4.6,
+    "ratingCount": 487,
+    "publishedAt": "2025-08-10T09:20:00.000Z"
+  },
+  {
+    "id": "mp-1700000000006",
+    "name": "Virtual Model Try-On",
+    "description": "Upload a garment and a model photo to see realistic virtual try-on results. Uses advanced image composition to drape clothing naturally on any body type.",
+    "category": "Fashion",
+    "tags": [
+      "fashion",
+      "mockup",
+      "composition",
+      "AI-generated"
+    ],
+    "exampleImages": [
+      {
+        "data": "",
+        "caption": "Virtual try-on result"
+      }
+    ],
+    "creatorName": "FitVision",
+    "creatorId": "anon-fit-033",
+    "nodes": [
+      {
+        "id": "mp6-input",
+        "type": "inputNode",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "data": {
+          "label": "Request - Inputs",
+          "nodeNumber": "1",
+          "prompt": "",
+          "initialFields": [
+            "image_urls",
+            "prompt",
+            "aspect_ratio",
+            "resolution"
+          ],
+          "fieldValues": {
+            "aspect_ratio": "3:4",
+            "resolution": "2K"
+          }
+        }
+      },
+      {
+        "id": "mp6-analyzer1",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": -60
+        },
+        "data": {
+          "label": "Claude Sonnet 4 (Model)",
+          "nodeNumber": "2",
+          "systemDirections": "Analyze the model photo. Describe body type, pose, skin tone, hair, and current outfit. Focus on proportions and posture for virtual try-on."
+        }
+      },
+      {
+        "id": "mp6-analyzer2",
+        "type": "imageAnalyzer",
+        "position": {
+          "x": 450,
+          "y": 200
+        },
+        "data": {
+          "label": "Claude Sonnet 4 (Garment)",
+          "nodeNumber": "3",
+          "systemDirections": "Analyze the garment photo. Describe the clothing item in detail: type, fabric, color, pattern, fit style, drape characteristics, and construction details."
+        }
+      },
+      {
+        "id": "mp6-adapter",
+        "type": "promptAdapter",
+        "position": {
+          "x": 900,
+          "y": 80
+        },
+        "data": {
+          "label": "Claude Haiku 4.5",
+          "nodeNumber": "4",
+          "systemDirections": "Combine model analysis and garment analysis. Create a photorealistic try-on prompt showing the model wearing the described garment naturally with correct fit and drape."
+        }
+      },
+      {
+        "id": "mp6-generator",
+        "type": "generator",
+        "position": {
+          "x": 1300,
+          "y": 20
+        },
+        "data": {
+          "label": "Nano Banana 2 Edit",
+          "nodeNumber": "5"
+        }
+      },
+      {
+        "id": "mp6-response",
+        "type": "response",
+        "position": {
+          "x": 1700,
+          "y": 80
+        },
+        "data": {
+          "label": "Response - Output",
+          "nodeNumber": "6",
+          "responseFields": [
+            {
+              "id": "mp6-gen-out",
+              "label": "image",
+              "color": "#ec4899",
+              "source": {
+                "nodeId": "mp6-generator",
+                "nodeLabel": "Nano Banana 2 Edit",
+                "handle": "image"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mp6e1",
+        "source": "mp6-input",
+        "sourceHandle": "image_urls",
+        "target": "mp6-analyzer1",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp6e2",
+        "source": "mp6-input",
+        "sourceHandle": "image_urls",
+        "target": "mp6-analyzer2",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#10b981"
+        }
+      },
+      {
+        "id": "mp6e3",
+        "source": "mp6-analyzer1",
+        "sourceHandle": "analysis-out",
+        "target": "mp6-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp6e4",
+        "source": "mp6-analyzer2",
+        "sourceHandle": "analysis-out",
+        "target": "mp6-adapter",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp6e5",
+        "source": "mp6-adapter",
+        "sourceHandle": "prompt-out",
+        "target": "mp6-generator",
+        "targetHandle": "prompt-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f97316"
+        }
+      },
+      {
+        "id": "mp6e6",
+        "source": "mp6-input",
+        "sourceHandle": "image_urls",
+        "target": "mp6-generator",
+        "targetHandle": "image-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      },
+      {
+        "id": "mp6e7",
+        "source": "mp6-input",
+        "sourceHandle": "aspect_ratio",
+        "target": "mp6-generator",
+        "targetHandle": "aspect-ratio-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#f59e0b"
+        }
+      },
+      {
+        "id": "mp6e8",
+        "source": "mp6-generator",
+        "sourceHandle": "output",
+        "target": "mp6-response",
+        "targetHandle": "images-in",
+        "type": "deletable",
+        "style": {
+          "stroke": "#ec4899"
+        }
+      }
+    ],
+    "visibility": "closed",
+    "pricingType": "paid",
+    "marginPercent": 50,
+    "baseCost": 0.06,
+    "pricePerRun": 0.09,
+    "uses": 159,
+    "rating": 4.4,
+    "ratingCount": 38,
+    "publishedAt": "2025-11-28T16:30:00.000Z"
+  }
+]

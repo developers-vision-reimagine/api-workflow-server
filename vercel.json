@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/[[...path]].js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/[[...path]]"
+    }
+  ],
+  "env": {},
+  "functions": {
+    "api/[[...path]].js": {
+      "maxDuration": 300
+    }
+  }
+}
