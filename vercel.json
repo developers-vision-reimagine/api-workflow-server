@@ -9,7 +9,7 @@
   "env": {},
   "functions": {
     "api/[[...path]].js": {
-      "maxDuration": 300
+      "maxDuration": 800
     }
   }
 }
