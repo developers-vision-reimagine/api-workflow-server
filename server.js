@@ -77,17 +77,12 @@ function saveMarketplace() {
 }
 
 const NANO_BANANA_BASE = "https://apireq.enhancor.ai/api/nano-banana-2/v1";
-const NANO_BANANA_KEY = process.env.NANO_BANANA_API_KEY;
-
 const KORA_REALITY_BASE = "https://apireq.enhancor.ai/api/kora-reality/v1";
-const KORA_REALITY_KEY = process.env.NANO_BANANA_API_KEY; // same enhancor key
-
 const SKIN_FIX_BASE = "https://apireq.enhancor.ai/api/realistic-skin/v1";
 const PORTRAIT_UPSCALER_BASE = "https://apireq.enhancor.ai/api/upscaler/v1";
 const IMAGE_UPSCALER_BASE = "https://apireq.enhancor.ai/api/image-upscaler/v1";
 const CRISP_UPSCALER_BASE = "https://apireq.enhancor.ai/api/crisp-upscaler/v1";
 const KLING_V3_BASE = "https://apireq.enhancor.ai/api/kling-v3/v1";
-const ENHANCOR_KEY = process.env.NANO_BANANA_API_KEY; // same key for all enhancor services
 
 const app = express();
 app.use(cors());
@@ -275,6 +270,7 @@ app.post("/api/analyze-image", async (req, res) => {
 // --- Generate Image (Nano Banana) ---
 app.post("/api/generate-image", async (req, res) => {
   const { prompt, imageUrl, imageUrls, resolution, aspectRatio } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   try {
     // Step 1: Queue the job
@@ -302,7 +298,7 @@ app.post("/api/generate-image", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": NANO_BANANA_KEY,
+        "x-api-key": apiKey,
       },
       body: JSON.stringify(queueBody),
     });
@@ -330,7 +326,7 @@ app.post("/api/generate-image", async (req, res) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": NANO_BANANA_KEY,
+          "x-api-key": apiKey,
         },
         body: JSON.stringify({ request_id: requestId }),
       });
@@ -362,6 +358,7 @@ app.post("/api/generate-image", async (req, res) => {
 // --- Generate Image (Kora Reality) ---
 app.post("/api/generate-kora", async (req, res) => {
   const { prompt, aspectRatio, resolution, mode } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   // Map UI aspect ratios to Kora format
   const ASPECT_MAP = {
@@ -398,7 +395,7 @@ app.post("/api/generate-kora", async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": KORA_REALITY_KEY,
+        "x-api-key": apiKey,
       },
       body: JSON.stringify(queueBody),
     });
@@ -426,7 +423,7 @@ app.post("/api/generate-kora", async (req, res) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": KORA_REALITY_KEY,
+          "x-api-key": apiKey,
         },
         body: JSON.stringify({ request_id: requestId }),
       });
@@ -460,6 +457,7 @@ async function enhancorQueueAndPoll(
   baseUrl,
   queueBody,
   label,
+  key,
   maxAttempts = 120,
   interval = 6000,
 ) {
@@ -477,7 +475,7 @@ async function enhancorQueueAndPoll(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ENHANCOR_KEY,
+      "x-api-key": key,
     },
     body: JSON.stringify(bodyWithWebhook),
   });
@@ -503,7 +501,7 @@ async function enhancorQueueAndPoll(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ENHANCOR_KEY,
+        "x-api-key": key,
       },
       body: JSON.stringify({ request_id: requestId }),
     });
@@ -530,6 +528,7 @@ async function enhancorQueueAndPoll(
 
 // --- Generate Skin Fix (Enhancor Skin Fix) ---
 app.post("/api/generate-skinfix", async (req, res) => {
+  const apiKey = req.headers["x-api-key"];
   const {
     imageUrl,
     modelVersion,
@@ -611,6 +610,7 @@ app.post("/api/generate-skinfix", async (req, res) => {
       SKIN_FIX_BASE,
       queueBody,
       "Skin Fix",
+      apiKey,
     );
     res.json({ outputUrl: result });
   } catch (err) {
@@ -622,6 +622,7 @@ app.post("/api/generate-skinfix", async (req, res) => {
 // --- Generate Portrait Upscaler (Portrait Detailer) ---
 app.post("/api/generate-portrait-upscaler", async (req, res) => {
   const { imageUrl, mode } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   try {
     const queueBody = { img_url: imageUrl };
@@ -636,6 +637,7 @@ app.post("/api/generate-portrait-upscaler", async (req, res) => {
       PORTRAIT_UPSCALER_BASE,
       queueBody,
       "Portrait Upscaler",
+      apiKey,
     );
     res.json({ outputUrl: result });
   } catch (err) {
@@ -647,6 +649,7 @@ app.post("/api/generate-portrait-upscaler", async (req, res) => {
 // --- Generate Image Upscaler ---
 app.post("/api/generate-image-upscaler", async (req, res) => {
   const { imageUrl } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   try {
     const queueBody = { img_url: imageUrl };
@@ -659,6 +662,7 @@ app.post("/api/generate-image-upscaler", async (req, res) => {
       IMAGE_UPSCALER_BASE,
       queueBody,
       "Image Upscaler",
+      apiKey,
     );
     res.json({ outputUrl: result });
   } catch (err) {
@@ -670,6 +674,7 @@ app.post("/api/generate-image-upscaler", async (req, res) => {
 // --- Generate Crisp Upscaler ---
 app.post("/api/generate-crisp-upscaler", async (req, res) => {
   const { imageUrl, upscaleFactor } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   try {
     const queueBody = {
@@ -687,6 +692,7 @@ app.post("/api/generate-crisp-upscaler", async (req, res) => {
       CRISP_UPSCALER_BASE,
       queueBody,
       "Crisp Upscaler",
+      apiKey,
     );
     res.json({ outputUrl: result });
   } catch (err) {
@@ -698,6 +704,7 @@ app.post("/api/generate-crisp-upscaler", async (req, res) => {
 // --- Generate Kling V3 ---
 app.post("/api/generate-kling", async (req, res) => {
   const { prompt, imageUrls, mode, duration, sound, aspectRatio } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   try {
     const queueBody = { prompt };
@@ -717,6 +724,7 @@ app.post("/api/generate-kling", async (req, res) => {
       KLING_V3_BASE,
       queueBody,
       "Kling V3",
+      apiKey,
     );
     res.json({ outputUrl: result });
   } catch (err) {
