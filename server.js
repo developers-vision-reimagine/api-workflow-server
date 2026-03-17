@@ -324,7 +324,7 @@ app.post("/api/generate-image", async (req, res) => {
     // Step 2: Poll for status
     const maxAttempts = 90; // up to ~3 minutes
     for (let i = 0; i < maxAttempts; i++) {
-      await sleep(2000);
+      await sleep(4000);
 
       const statusRes = await fetch(`${NANO_BANANA_BASE}/status`, {
         method: "POST",
@@ -420,7 +420,7 @@ app.post("/api/generate-kora", async (req, res) => {
     // Poll for status
     const maxAttempts = 90; // up to ~3 minutes
     for (let i = 0; i < maxAttempts; i++) {
-      await sleep(2000);
+      await sleep(4000);
 
       const statusRes = await fetch(`${KORA_REALITY_BASE}/status`, {
         method: "POST",
@@ -461,7 +461,7 @@ async function enhancorQueueAndPoll(
   queueBody,
   label,
   maxAttempts = 120,
-  interval = 3000,
+  interval = 6000,
 ) {
   // All Enhancor APIs require a webhook URL even when polling — add a no-op placeholder
   const webhookKey =
@@ -750,7 +750,7 @@ async function falSubscribe(endpointId, input) {
   // Poll for status
   const maxAttempts = 120;
   for (let i = 0; i < maxAttempts; i++) {
-    await sleep(3000);
+    await sleep(6000);
     const statusRes = await fetch(
       `https://queue.fal.run/${endpointId}/requests/${request_id}/status`,
       {

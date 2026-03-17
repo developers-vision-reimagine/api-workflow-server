@@ -33,7 +33,7 @@ export function sleep(ms) {
 /**
  * Generic queue + poll for Enhancor services.
  */
-export async function enhancorQueueAndPoll(baseUrl, queueBody, label, maxAttempts = 120, interval = 3000) {
+export async function enhancorQueueAndPoll(baseUrl, queueBody, label, maxAttempts = 120, interval = 6000) {
   const key = getEnhancorKey();
 
   const queueRes = await fetch(`${baseUrl}/queue`, {
