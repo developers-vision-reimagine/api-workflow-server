@@ -928,7 +928,7 @@ Think like a senior AI engineer. Before outputting JSON, reason through:
 ## TECHNICAL RULES
 
 1. Every workflow MUST have exactly one node with type "inputNode" and exactly one node with type "response".
-2. The inputNode's data.initialFields array determines what input fields appear. Pick from: image_urls, prompt, aspect_ratio, resolution, num_images. Use _2 suffix for duplicates (e.g., image_urls_2 for a second image upload).
+2. The inputNode's data.initialFields array determines what input fields appear. Pick from: image_urls, prompt, aspect_ratio, resolution, num_images, audio_url, video_url. Use _2 suffix for duplicates (e.g., image_urls_2 for a second image upload). Use audio_url for audio inputs and video_url for video inputs.
 3. Edges connect a source node's output handle to a target node's input handle. Each edge needs: id, source, sourceHandle, target, targetHandle, type: "deletable", style: { stroke: "<color>" }.
 4. Edge stroke colors MUST match the SOURCE handle's color from the catalog.
 5. Node IDs should be descriptive (e.g., "gen-input", "gen-analyzer-1", "gen-generator").
@@ -937,13 +937,14 @@ Think like a senior AI engineer. Before outputting JSON, reason through:
 8. For promptAdapter nodes, write DETAILED systemDirections (3-5 sentences minimum) explaining the transformation logic. Describe what inputs to expect, how to combine them, and what the output prompt should look like for the downstream generator.
 9. The response node must be the rightmost node. Connect the final output(s) to it via the "images-in" handle.
 10. For generator nodes with a subtype, include the subtype's generatorType in data (e.g., data.generatorType = "kora"). Configure settings like aspect_ratio and num_images based on the use case.
-11. Nano Banana (no subtype) accepts image-in for reference images. Kora Reality (subtype: "kora") does NOT accept image-in — text-to-image only.
+11. TEXT-TO-IMAGE ONLY (no image-in handle): Nano Banana 2 (subtype: "nano-banana-2"), Nano Banana Pro (subtype: "nano-banana-pro"), Kora Reality (subtype: "kora"). ACCEPTS image-in: Nano Banana 2 Edit (no subtype, label: "Nano Banana 2 Edit"), Nano Banana Pro Edit (subtype: "nano-banana-pro-edit"), Seedream 5.0 Lite (subtype: "seedream-5-lite"). Also available: standalone textNode, imageNode, audioNode, videoNode input nodes (no subtype needed).
 12. Include data.nodeNumber as a string ("1", "2", etc.) for each node, numbered left to right, top to bottom.
 18. CRITICAL: data.label MUST use the catalog's defaultData.label (e.g., "Claude Sonnet 4", "Claude Haiku 4.5", "Nano Banana 2 Edit", "Crisp Upscaler"). NEVER override data.label with custom names. Instead, put a short descriptive name in data.displayName (e.g., "Garment Structure Analyzer", "Tech Pack Synthesizer"). The UI will show the model name as the main title and the displayName as a subtitle below it.
 13. The response node's data.responseFields should list each incoming connection as: { id: "<sourceId>-<sourceHandle>", label: "<descriptive label>", color: "<handle color>", source: { nodeId: "<sourceId>", nodeLabel: "<source node label>", handle: "<sourceHandle>" } }.
-14. When the user wants to analyze/understand an existing image, use imageAnalyzer. When they want to enhance a text prompt, use promptAdapter. When they want to generate a new image, use a generator.
+14. When the user wants to analyze/understand an existing image, use imageAnalyzer (Claude Sonnet Vision, no subtype) or imageAnalyzer with subtype "openrouter-vision" for model flexibility. When they want to analyze a video, use imageAnalyzer with subtype "openrouter-video". When they want to enhance a text prompt, use promptAdapter (Claude Haiku 4.5, no subtype) or promptAdapter with subtype "openrouter-chat" for model flexibility. When they want to generate a new image, use a generator.
 15. For promptAdapter receiving analysis from imageAnalyzer, set data.promptConnected to true so the analysis-in handle is available.
-16. For post-processing nodes (upscalers, skin fix, video generators), configure their settings based on the use case. E.g., for product photography set upscale_factor to 2, for portraits enable skin fix with appropriate mode.
+16. For post-processing nodes (upscalers, skin fix, video generators), configure their settings based on the use case. E.g., for product photography set upscale_factor to 2, for portraits enable skin fix with appropriate model_version/enhancement_strength. For video upscaling prefer enhancor-video-upscale over topaz-video-upscaler unless specifically requested.
+19. Available generator subtypes: nano-banana-2 (text-to-image, budget), nano-banana-pro (text-to-image, premium), nano-banana-pro-edit (image editing, premium), seedream-5-lite (text+image, budget), pixelcut-bg-removal (background removal, no prompt), kora (photorealistic text-to-image), crisp-upscaler (default upscaler), portrait-upscaler (face/portrait upscaling), image-upscaler (premium quality upscale), topaz-video-upscaler (video upscaling), enhancor-video-upscale (recommended video upscaling), enhancor-skinfix-v4-base (skin fix + upscale in one), enhancor-skinfix-v4 (best quality skin fix), enhancor-skinfix-v3 (fine-grained skin controls), enhancor-skinfix-v1 (budget skin fix).
 17. When the description is detailed or complex, build a LARGER workflow (6-10 nodes) with parallel branches, multiple analysis steps, and chained prompt refinement. Simple descriptions can use fewer nodes.
 
 ## EXAMPLE THINKING
@@ -952,7 +953,7 @@ User: "Upload a product photo of clothing and turn it into a tech pack"
 BAD: Input → Analyzer → Generator → Output (too simple, generic prompts)
 GOOD: Input → [Garment Structure Analyzer (parallel) + Color & Fabric Analyzer (parallel)] → Tech Pack Prompt Synthesizer → Tech Pack Illustration Generator → Output (each analyzer has detailed domain-expert instructions, the synthesizer combines both analyses into a comprehensive generation prompt)
 
-OUTPUT: Return ONLY valid JSON (no markdown fences, no explanation) with this structure:
+OUTPUT: Return ONLY valid JSON. No preamble, no explanation, no markdown fences, no text before or after. Your ENTIRE response must be a single JSON object starting with { and ending with }. Structure:
 {
   "nodes": [ { "id": "...", "type": "...", "position": { "x": 0, "y": 0 }, "data": { ... } } ],
   "edges": [ { "id": "...", "source": "...", "sourceHandle": "...", "target": "...", "targetHandle": "...", "type": "deletable", "style": { "stroke": "#..." } } ],
@@ -982,10 +983,27 @@ OUTPUT: Return ONLY valid JSON (no markdown fences, no explanation) with this st
     const textBlock = response.content.find((b) => b.type === "text");
     const text = (textBlock?.text || "").trim();
     // Strip markdown fences if present
-    const jsonStr = text
+    const stripped = text
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```$/i, "");
-    const workflow = JSON.parse(jsonStr);
+
+    let workflow;
+    // Try direct parse first
+    try { workflow = JSON.parse(stripped); } catch { /* fall through */ }
+
+    // If that failed, scan for the outermost { ... } block
+    if (!workflow) {
+      const start = stripped.indexOf("{");
+      const end = stripped.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        try { workflow = JSON.parse(stripped.slice(start, end + 1)); } catch { /* fall through */ }
+      }
+    }
+
+    if (!workflow) {
+      console.error("Generate workflow: could not parse JSON from model response:", stripped.slice(0, 300));
+      return res.status(500).json({ error: "Model did not return valid workflow JSON. Please try again." });
+    }
 
     // Basic validation
     const hasInput = workflow.nodes?.some((n) => n.type === "inputNode");
@@ -1016,8 +1034,28 @@ app.post("/api/agent-chat", async (req, res) => {
         .json({ error: "messages and workflowState are required" });
     }
 
+    // Strip large runtime fields (base64 images, outputs) from workflow state before sending to AI
+    const slimWorkflowState = {
+      nodes: (workflowState.nodes || []).map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: Object.fromEntries(
+          Object.entries(n.data || {}).filter(
+            ([k]) =>
+              !["outputImage", "imagePreview", "uploadedImage", "imageData", "resultImage", "generatedImage", "inputImagePreview", "analysisResult"].includes(k) &&
+              !(typeof n.data[k] === "string" && n.data[k].startsWith("data:"))
+          )
+        ),
+      })),
+      edges: workflowState.edges || [],
+    };
+
+    // Cap message history to last 20 messages to prevent runaway token growth
+    const trimmedMessages = messages.slice(-20);
+
     // Smart model routing (moved before system prompt so we can conditionally include catalog)
-    const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+    const lastMsg = trimmedMessages[trimmedMessages.length - 1]?.content?.toLowerCase() || "";
     const needsFullRebuild =
       /\b(rebuild|restructure|redesign|rewrite|redo|start over|from scratch|completely change|overhaul|rework)\b/i.test(
         lastMsg,
@@ -1035,7 +1073,7 @@ You're a friend who happens to be really good at AI workflows. Talk naturally, l
 CRITICAL: Write your reply as MULTIPLE SHORT messages, like texting a friend. Each message should be 1-2 sentences max. Use the "replies" array (not "reply") to send multiple chat bubbles. This feels way more human and conversational than a wall of text. Think iMessage vibes.
 
 ## CURRENT WORKFLOW STATE
-${JSON.stringify(workflowState)}
+${JSON.stringify(slimWorkflowState)}
 
 ## NODE CATALOG (available node types)
 ${(needsStructuralChanges || needsFullRebuild) && catalog ? JSON.stringify(catalog) : "Catalog omitted for this query — ask for structural changes to see available nodes."}
@@ -1059,7 +1097,7 @@ When proposing changes, include actions in the array. When just explaining or an
 Each action in the array must be one of:
 
 1. ADD A NODE (you MUST include a "nodeId" so you can reference it in add_edge):
-{ "type": "add_node", "nodeId": "new-upscaler-1", "nodeType": "imageAnalyzer|promptAdapter|generator|inputNode|response", "subtype": "kora|crisp-upscaler|portrait-upscaler|image-upscaler|skin-fix-v4|skin-fix-v3|skin-fix-v1|enhancor-v4-video|kling-3" (optional, for generator nodes only), "position": { "x": 0, "y": 0 }, "data": { "label": "catalog default label", "displayName": "descriptive name", "systemDirections": "...", "nodeNumber": "N" } }
+{ "type": "add_node", "nodeId": "new-upscaler-1", "nodeType": "imageAnalyzer|promptAdapter|generator|inputNode|response|textNode|imageNode|audioNode|videoNode", "subtype": "(optional) — generator subtypes: nano-banana-2|nano-banana-pro|nano-banana-pro-edit|seedream-5-lite|pixelcut-bg-removal|kora|crisp-upscaler|portrait-upscaler|image-upscaler|topaz-video-upscaler|enhancor-video-upscale|enhancor-skinfix-v4-base|enhancor-skinfix-v4|enhancor-skinfix-v3|enhancor-skinfix-v1 — promptAdapter subtypes: openrouter-chat — imageAnalyzer subtypes: openrouter-vision|openrouter-video — omit subtype for default Claude Haiku promptAdapter or Claude Sonnet Vision imageAnalyzer", "position": { "x": 0, "y": 0 }, "data": { "label": "catalog default label", "displayName": "descriptive name", "systemDirections": "...", "nodeNumber": "N" } }
 
 2. REMOVE A NODE:
 { "type": "remove_node", "nodeId": "the-node-id" }
@@ -1084,17 +1122,18 @@ IMPORTANT: When you add a new node, you MUST also add edges to connect it. Use t
 
 ## RULES
 
-1. data.label MUST use catalog default labels (e.g., "Claude Sonnet 4", "Claude Haiku 4.5", "Nano Banana 2 Edit"). Put descriptive names in data.displayName.
-2. Edge stroke colors must match the source handle color from the catalog.
+1. data.label MUST use catalog default labels (e.g., "Claude Sonnet Vision", "Claude Haiku 4.5", "OpenRouter Chat", "OpenRouter Vision", "OpenRouter Video", "Nano Banana 2", "Nano Banana Pro", "Nano Banana 2 Edit", "Nano Banana Pro Edit", "Seedream 5.0 Lite", "Kora Reality", "Background Removal", "Crisp Upscaler", "Portrait Upscaler", "Image Upscaler", "Topaz Video Upscaler", "Enhancor Video Upscale", "Enhancor V4 Base", "Enhancor V4", "Enhancor V3", "Enhancor V1"). Put descriptive names in data.displayName.
+2. Edge stroke colors must match the source handle color: image handles = #ec4899, text/prompt handles = #f97316, audio handles = #06b6d4, video handles = #a855f7, aspect_ratio = #f59e0b, resolution = #22c55e, num_images = #8b5cf6.
 3. Position new nodes logically: ~420px horizontal spacing between columns, ~350px vertical spacing for parallel nodes.
 4. Write detailed, expert-level systemDirections (3-5 sentences) when adding or updating analyzer/adapter nodes.
 5. Every workflow needs exactly one inputNode and one response node — never remove these.
 6. When adding nodes, also add the necessary edges to connect them.
-7. For generator subtypes, include generatorType in data.
+7. For generator subtypes, include generatorType in data matching the subtype (e.g., generatorType: "crisp-upscaler"). For OpenRouter nodes (promptAdapter subtype "openrouter-chat", imageAnalyzer subtype "openrouter-vision"/"openrouter-video"), include generatorType and model in data.
 8. When suggesting improvements, explain WHY each change helps — don't just list actions.
 9. Reference existing nodes by their ID and label so the user can understand the changes.
 10. If the workflow is already good, say so! Don't force unnecessary changes.
 11. When adding a new node, you MUST also add edges to connect it to the existing workflow. Never leave a node unconnected.
+12. TEXT-TO-IMAGE ONLY (no image-in): Nano Banana 2, Nano Banana Pro, Kora Reality. ACCEPTS image-in: Nano Banana 2 Edit, Nano Banana Pro Edit, Seedream 5.0 Lite. Video analysis uses imageAnalyzer subtype "openrouter-video" with video-in handle (color #a855f7). Audio inputs use audioNode or inputNode with audio_url field.
 
 ## RESPONSE FORMAT
 You MUST respond with a JSON object (no markdown, no code fences) in exactly this format:
@@ -1105,23 +1144,23 @@ You MUST respond with a JSON object (no markdown, no code fences) in exactly thi
 
 The "replies" array contains multiple short chat bubbles shown sequentially to the user, like text messages. Each should be 1-2 sentences max. Keep it natural and conversational. 2-4 bubbles is ideal. NEVER include JSON, code blocks, or technical markup in replies. The "actions" array contains the structured changes (add_node, add_edge, etc). If you have no changes to propose, use an empty array [].`;
 
-    const apiMessages = messages.map((m) => ({
+    const apiMessages = trimmedMessages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    // Opus ($15/$75) for full rebuilds, Sonnet ($3/$15) for edits/analysis, Haiku ($1/$5) for simple Qs
+    // Opus 4.6 ($15/$75) for full rebuilds, Sonnet 4.6 ($3/$15) for edits/analysis, Haiku 4.5 ($1/$5) for simple Qs
     let model, inputRate, outputRate, modelLabel;
     if (needsFullRebuild) {
-      model = "claude-opus-4-20250918";
+      model = "claude-opus-4-6";
       inputRate = 15;
       outputRate = 75;
-      modelLabel = "Opus 4";
+      modelLabel = "Opus 4.6";
     } else if (needsStructuralChanges) {
-      model = "claude-sonnet-4-20250514";
+      model = "claude-sonnet-4-6";
       inputRate = 3;
       outputRate = 15;
-      modelLabel = "Sonnet 4";
+      modelLabel = "Sonnet 4.6";
     } else {
       model = "claude-haiku-4-5-20251001";
       inputRate = 1;
