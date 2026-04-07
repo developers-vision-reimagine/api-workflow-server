@@ -40,7 +40,7 @@ if (!isVercel && !process.env.ANTHROPIC_API_KEY) {
   } catch (_) {}
 }
 
-// --- Marketplace: in-memory; on Vercel no persistence ---
+// --- Marketplace: in-memory; on Vercel no persistence. ---
 const MARKETPLACE_FILE = join(__dirname, "marketplace-data.json");
 let marketplaceListings = [];
 if (isVercel) {
@@ -960,7 +960,7 @@ Example edge wiring for an extend node:
 ## TECHNICAL RULES
 
 1. Every workflow MUST have exactly one node with type "inputNode" and exactly one node with type "response".
-2. The inputNode's data.initialFields array determines what input fields appear. Pick from: image_urls, prompt, aspect_ratio, resolution, num_images. Use _2 suffix for duplicates (e.g., image_urls_2 for a second image upload).
+2. The inputNode's data.initialFields array determines what input fields appear. Pick from: image_urls, prompt, aspect_ratio, resolution, num_images, audio_url, video_url. Use _2 suffix for duplicates (e.g., image_urls_2 for a second image upload). Use audio_url for audio inputs and video_url for video inputs.
 3. Edges connect a source node's output handle to a target node's input handle. Each edge needs: id, source, sourceHandle, target, targetHandle, type: "deletable", style: { stroke: "<color>" }.
 4. Edge stroke colors MUST match the SOURCE handle's color from the catalog.
 5. Node IDs should be descriptive (e.g., "gen-input", "gen-analyzer-1", "gen-generator").
@@ -1020,10 +1020,42 @@ OUTPUT: Return ONLY valid JSON (no markdown fences, no explanation) with this st
     const textBlock = response.content.find((b) => b.type === "text");
     const text = (textBlock?.text || "").trim();
     // Strip markdown fences if present
-    const jsonStr = text
+    const stripped = text
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```$/i, "");
-    const workflow = JSON.parse(jsonStr);
+
+    let workflow;
+    // Try direct parse first
+    try {
+      workflow = JSON.parse(stripped);
+    } catch {
+      /* fall through */
+    }
+
+    // If that failed, scan for the outermost { ... } block
+    if (!workflow) {
+      const start = stripped.indexOf("{");
+      const end = stripped.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        try {
+          workflow = JSON.parse(stripped.slice(start, end + 1));
+        } catch {
+          /* fall through */
+        }
+      }
+    }
+
+    if (!workflow) {
+      console.error(
+        "Generate workflow: could not parse JSON from model response:",
+        stripped.slice(0, 300),
+      );
+      return res
+        .status(500)
+        .json({
+          error: "Model did not return valid workflow JSON. Please try again.",
+        });
+    }
 
     // Basic validation
     const hasInput = workflow.nodes?.some((n) => n.type === "inputNode");
@@ -1051,8 +1083,38 @@ app.post("/api/agent-chat", async (req, res) => {
         .json({ error: "messages and workflowState are required" });
     }
 
+    // Strip large runtime fields (base64 images, outputs) from workflow state before sending to AI
+    const slimWorkflowState = {
+      nodes: (workflowState.nodes || []).map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: Object.fromEntries(
+          Object.entries(n.data || {}).filter(
+            ([k]) =>
+              ![
+                "outputImage",
+                "imagePreview",
+                "uploadedImage",
+                "imageData",
+                "resultImage",
+                "generatedImage",
+                "inputImagePreview",
+                "analysisResult",
+              ].includes(k) &&
+              !(typeof n.data[k] === "string" && n.data[k].startsWith("data:")),
+          ),
+        ),
+      })),
+      edges: workflowState.edges || [],
+    };
+
+    // Cap message history to last 20 messages to prevent runaway token growth
+    const trimmedMessages = messages.slice(-20);
+
     // Smart model routing (moved before system prompt so we can conditionally include catalog)
-    const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+    const lastMsg =
+      trimmedMessages[trimmedMessages.length - 1]?.content?.toLowerCase() || "";
     const needsFullRebuild =
       /\b(rebuild|restructure|redesign|rewrite|redo|start over|from scratch|completely change|overhaul|rework)\b/i.test(
         lastMsg,
@@ -1071,7 +1133,7 @@ You're a friend who happens to be really good at AI workflows. Talk naturally, l
 CRITICAL: Write your reply as MULTIPLE SHORT messages, like texting a friend. Each message should be 1-2 sentences max. Use the "replies" array (not "reply") to send multiple chat bubbles. This feels way more human and conversational than a wall of text. Think iMessage vibes.
 
 ## CURRENT WORKFLOW STATE
-${JSON.stringify(workflowState)}
+${JSON.stringify(slimWorkflowState)}
 
 ## NODE CATALOG (available node types)
 ${(needsStructuralChanges || needsFullRebuild) && catalog ? JSON.stringify(catalog) : "Catalog omitted for this query — ask for structural changes to see available nodes."}
@@ -1144,13 +1206,13 @@ IMPORTANT: When adding a seedance-2.0-extend node, you MUST wire it from the ups
 
 ## RULES
 
-1. data.label MUST use catalog default labels (e.g., "Claude Sonnet 4", "Claude Haiku 4.5", "Nano Banana 2 Edit"). Put descriptive names in data.displayName.
-2. Edge stroke colors must match the source handle color from the catalog.
+1. data.label MUST use catalog default labels (e.g., "Claude Sonnet Vision", "Claude Haiku 4.5", "OpenRouter Chat", "OpenRouter Vision", "OpenRouter Video", "Nano Banana 2", "Nano Banana Pro", "Nano Banana 2 Edit", "Nano Banana Pro Edit", "Seedream 5.0 Lite", "Kora Reality", "Background Removal", "Crisp Upscaler", "Portrait Upscaler", "Image Upscaler", "Topaz Video Upscaler", "Enhancor Video Upscale", "Enhancor V4 Base", "Enhancor V4", "Enhancor V3", "Enhancor V1"). Put descriptive names in data.displayName.
+2. Edge stroke colors must match the source handle color: image handles = #ec4899, text/prompt handles = #f97316, audio handles = #06b6d4, video handles = #a855f7, aspect_ratio = #f59e0b, resolution = #22c55e, num_images = #8b5cf6.
 3. Position new nodes logically: ~420px horizontal spacing between columns, ~350px vertical spacing for parallel nodes.
 4. Write detailed, expert-level systemDirections (3-5 sentences) when adding or updating analyzer/adapter nodes.
 5. Every workflow needs exactly one inputNode and one response node — never remove these.
 6. When adding nodes, also add the necessary edges to connect them.
-7. For generator subtypes, include generatorType in data.
+7. For generator subtypes, include generatorType in data matching the subtype (e.g., generatorType: "crisp-upscaler"). For OpenRouter nodes (promptAdapter subtype "openrouter-chat", imageAnalyzer subtype "openrouter-vision"/"openrouter-video"), include generatorType and model in data.
 8. When suggesting improvements, explain WHY each change helps — don't just list actions.
 9. Reference existing nodes by their ID and label so the user can understand the changes.
 10. If the workflow is already good, say so! Don't force unnecessary changes.
@@ -1168,23 +1230,23 @@ You MUST respond with a JSON object (no markdown, no code fences) in exactly thi
 The "replies" array contains multiple short chat bubbles shown sequentially to the user, like text messages. Each should be 1-2 sentences max. Keep it natural and conversational. 2-4 bubbles is ideal. NEVER include JSON, code blocks, or technical markup in replies. The "actions" array contains the structured changes (add_node, add_edge, etc). If you have no changes to propose, use an empty array [].
 ```;
 
-    const apiMessages = messages.map((m) => ({
+    const apiMessages = trimmedMessages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    // Opus ($15/$75) for full rebuilds, Sonnet ($3/$15) for edits/analysis, Haiku ($1/$5) for simple Qs
+    // Opus 4.6 ($15/$75) for full rebuilds, Sonnet 4.6 ($3/$15) for edits/analysis, Haiku 4.5 ($1/$5) for simple Qs
     let model, inputRate, outputRate, modelLabel;
     if (needsFullRebuild) {
-      model = "claude-opus-4-20250918";
+      model = "claude-opus-4-6";
       inputRate = 15;
       outputRate = 75;
-      modelLabel = "Opus 4";
+      modelLabel = "Opus 4.6";
     } else if (needsStructuralChanges) {
-      model = "claude-sonnet-4-20250514";
+      model = "claude-sonnet-4-6";
       inputRate = 3;
       outputRate = 15;
-      modelLabel = "Sonnet 4";
+      modelLabel = "Sonnet 4.6";
     } else {
       model = "claude-haiku-4-5-20251001";
       inputRate = 1;
