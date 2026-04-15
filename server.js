@@ -910,7 +910,7 @@ app.post("/api/generate-workflow", async (req, res) => {
     }
     const isPro = mode === "pro";
 
-    const systemPrompt = ```
+    const systemPrompt = `
 You are a SENIOR workflow architect for Enhancor, an AI image pipeline tool. You design the BEST possible workflow for each user request — comprehensive, well-thought-out, and production-quality.
 
 You will receive a NODE CATALOG describing every available node type, their inputs, outputs, configurable fields, and default data.
@@ -996,7 +996,7 @@ OUTPUT: Return ONLY valid JSON (no markdown fences, no explanation) with this st
   "name": "short workflow name (2-4 words)",
   "description": "one-line description of what this workflow does"
 }
-```;
+`;
 
     const response = await withRetry(() =>
       anthropic.messages.create({
@@ -1124,7 +1124,7 @@ app.post("/api/agent-chat", async (req, res) => {
         lastMsg,
       );
 
-    const systemPrompt = ```
+    const systemPrompt = `
 You are an expert workflow architect for Enhancor, a node-based AI image pipeline tool. You help users understand, improve, and modify their workflows through conversation.
 
 ## YOUR PERSONALITY
@@ -1228,7 +1228,7 @@ You MUST respond with a JSON object (no markdown, no code fences) in exactly thi
 }
 
 The "replies" array contains multiple short chat bubbles shown sequentially to the user, like text messages. Each should be 1-2 sentences max. Keep it natural and conversational. 2-4 bubbles is ideal. NEVER include JSON, code blocks, or technical markup in replies. The "actions" array contains the structured changes (add_node, add_edge, etc). If you have no changes to propose, use an empty array [].
-```;
+`;
 
     const apiMessages = trimmedMessages.map((m) => ({
       role: m.role,
