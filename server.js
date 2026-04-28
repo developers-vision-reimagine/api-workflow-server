@@ -7,6 +7,7 @@ import cors from "cors";
 import multer from "multer";
 import sharp from "sharp";
 import Anthropic from "@anthropic-ai/sdk";
+import { verifyFirebaseToken } from "./firebaseAuth.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isVercel = process.env.VERCEL === "1";
@@ -87,6 +88,9 @@ const KLING_V3_BASE = "https://apireq.enhancor.ai/api/kling-v3/v1";
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
+
+// Firebase authentication — protect all /api/* routes
+app.use("/api", verifyFirebaseToken);
 
 // Serve uploaded images statically (local only; Vercel has no persistent disk)
 if (!isVercel) {
