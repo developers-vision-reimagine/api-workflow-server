@@ -40,7 +40,7 @@ if (!isVercel && !process.env.ANTHROPIC_API_KEY) {
   } catch (_) {}
 }
 
-// --- Marketplace: in-memory; on Vercel no persistence. ----
+// --- Marketplace: in-memory; on Vercel no persistence. ---
 const MARKETPLACE_FILE = join(__dirname, "marketplace-data.json");
 let marketplaceListings = [];
 if (isVercel) {
