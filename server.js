@@ -8,6 +8,7 @@ import multer from "multer";
 import sharp from "sharp";
 import Anthropic from "@anthropic-ai/sdk";
 import { verifyFirebaseToken } from "./firebaseAuth.js";
+import { decryptMiddleware } from "./decrypt.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isVercel = process.env.VERCEL === "1";
@@ -91,6 +92,9 @@ app.use(express.json({ limit: "50mb" }));
 
 // Firebase authentication — protect all /api/* routes
 app.use("/api", verifyFirebaseToken);
+
+// Decrypt encrypted request bodies from the frontend
+app.use("/api", decryptMiddleware);
 
 // Serve uploaded images statically (local only; Vercel has no persistent disk)
 if (!isVercel) {
