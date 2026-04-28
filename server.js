@@ -13,7 +13,7 @@ import { decryptMiddleware } from "./decrypt.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isVercel = process.env.VERCEL === "1";
 
-// Load .env manually (local dev only; Vercel injects env.)
+// Load .env manually (local dev only; Vercel injects env)
 if (!isVercel) {
   const envPath = join(__dirname, ".env");
   try {
