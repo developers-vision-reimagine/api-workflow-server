@@ -94,7 +94,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use("/api", verifyFirebaseToken);
 
 // Decrypt encrypted request bodies from the frontend
-app.use("/api", decryptMiddleware);
+// app.use("/api", decryptMiddleware);
 
 // Serve uploaded images statically (local only; Vercel has no persistent disk)
 if (!isVercel) {
@@ -1058,11 +1058,9 @@ OUTPUT: Return ONLY valid JSON (no markdown fences, no explanation) with this st
         "Generate workflow: could not parse JSON from model response:",
         stripped.slice(0, 300),
       );
-      return res
-        .status(500)
-        .json({
-          error: "Model did not return valid workflow JSON. Please try again.",
-        });
+      return res.status(500).json({
+        error: "Model did not return valid workflow JSON. Please try again.",
+      });
     }
 
     // Basic validation
