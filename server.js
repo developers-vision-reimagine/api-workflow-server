@@ -27,7 +27,7 @@ if (!isVercel) {
     }
   } catch (_) {}
 }
-// When running from repo root, backend uses ../.env
+// When running from repo root, backend uses ../.env/
 if (!isVercel && !process.env.ANTHROPIC_API_KEY) {
   const parentEnv = join(__dirname, "..", ".env");
   try {
