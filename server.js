@@ -27,7 +27,7 @@ if (!isVercel) {
     }
   } catch (_) {}
 }
-// When running from repo root, backend uses ../.env/
+// When running from repo root, backend uses ./.../.env/
 if (!isVercel && !process.env.ANTHROPIC_API_KEY) {
   const parentEnv = join(__dirname, "..", ".env");
   try {
@@ -936,7 +936,214 @@ Think like a senior AI engineer. Before outputting JSON, reason through:
 
 ## NODE DESCRIPTIONS
 
-### Seedance 2.0 (generatorType: "seedance-2.0")
+### Input Nodes
+
+**Text Node** (type: "textNode")
+A standalone node with a hardcoded text field and a text-out handle. Use it to inject a fixed string into multiple downstream nodes without adding a user-facing field to the inputNode. Good for static brand voice, style references, or constant system messages shared by several nodes.
+Key data fields: text (the static string content).
+Output handle: "text-out" (color #f97316).
+
+**Image Node** (type: "imageNode")
+A standalone image node for hardcoding reference images directly in the canvas. Use when a workflow requires a fixed asset (logo, style photo, product shot) that the user does not upload at runtime.
+Key data fields: images (array of image URLs).
+Output handle: "image-out" (color #ec4899).
+
+**Audio Node** (type: "audioNode")
+A standalone audio node for a fixed audio file reference. Use when the audio is baked into the workflow rather than user-uploaded.
+Key data fields: audioUrl.
+Output handle: "audio-out" (color #06b6d4).
+
+**Video Node** (type: "videoNode")
+A standalone video node for a fixed video reference. Use when the video is baked into the workflow rather than user-uploaded.
+Key data fields: videoUrl.
+Output handle: "video-out" (color #a855f7).
+
+### LLM Nodes
+
+**Claude Haiku 4.5** (type: "promptAdapter", no subtype)
+The built-in prompt adapter. Fast and cheap. Transforms text input into a refined output prompt using a configurable system prompt. The standard choice for prompt enhancement before any image or video generator. Enable the analysis-in handle by setting data.promptConnected: true so it can receive text from an imageAnalyzer node and combine it with the user's prompt. Write systemDirections in 3-5 sentences describing exactly how to transform the input and what the output should look like.
+Input handles: "prompt-in" (#f97316, required), "analysis-in" (#f97316, only when promptConnected: true), "system-in" (#f97316, optional override).
+Output handle: "prompt-out" (#f97316).
+inputNode fields needed: prompt.
+
+**Claude Sonnet Vision** (type: "imageAnalyzer", no subtype)
+The built-in image analyzer. Accepts an image and an optional text prompt, outputs detailed text analysis. Use as the first step when the workflow needs to understand an uploaded image before generating or editing. Write systemDirections in 3-5 sentences specifying what to analyze, what format the output should take, and what details matter for the downstream node.
+Input handles: "image-in" (#ec4899, required), "prompt-in" (#f97316, optional context), "system-in" (#f97316, optional).
+Output handle: "analysis-out" (#f97316).
+inputNode fields needed: image_urls.
+
+**OpenRouter Chat** (type: "promptAdapter", subtype: "openrouter-chat")
+Multi-model text LLM via OpenRouter. Use when the workflow needs a specific model (GPT-5, Gemini 2.5 Pro, Claude Opus 4.6, etc.) for text transformation. Same role as Claude Haiku but model-switchable. Default model: "google/gemini-2.5-flash". Set data.reasoning: true for chain-of-thought tasks.
+Key data fields: generatorType: "openrouter-chat", model, temperature (0-2), max_tokens, reasoning (boolean).
+Input handles: "prompt-in" (#f97316), "system-in" (#f97316).
+Output handle: "prompt-out" (#f97316).
+
+**OpenRouter Vision** (type: "imageAnalyzer", subtype: "openrouter-vision")
+Multi-model vision analyzer via OpenRouter. Same role as Claude Sonnet Vision but model-switchable. Default model: "google/gemini-2.5-flash". Supports multiple images per analysis. Use when the workflow needs a non-Claude vision model (e.g. Gemini 2.5 Pro for complex visual reasoning).
+Key data fields: generatorType: "openrouter-vision", model, temperature (0-2).
+Input handles: "image-in" (#ec4899, required), "prompt-in" (#f97316, required).
+Output handle: "analysis-out" (#f97316).
+
+**OpenRouter Video** (type: "imageAnalyzer", subtype: "openrouter-video")
+Video analysis via OpenRouter LLMs. Takes a video file and a text prompt, outputs detailed text analysis of the video content. Default model: "google/gemini-2.5-flash". Supported formats: MP4, MPEG, MOV, WEBM. Use for video summarization, scene extraction, or object detection workflows.
+Key data fields: generatorType: "openrouter-video", model, temperature (0-2).
+Input handles: "video-in" (#a855f7, required), "prompt-in" (#f97316, required).
+Output handle: "analysis-out" (#f97316).
+inputNode fields needed: video_url.
+
+### Image Generation
+
+**Nano Banana 2** (type: "generator", subtype: "nano-banana-2")
+Budget text-to-image. TEXT ONLY — no image-in handle. Use for pure text-to-image generation when cost matters. Supports aspect_ratio, resolution (1K/2K/4K), num_images. For reference image editing, use Nano Banana 2 Edit or Nano Banana Pro Edit instead.
+Key data fields: generatorType: "nano-banana-2".
+Input handles: "prompt-in" (#f97316), "aspect-ratio-in" (#f59e0b), "resolution-in" (#22c55e), "num-images-in" (#8b5cf6).
+Output handles: "prompt-out" (#f97316), "output" (#ec4899).
+inputNode fields needed: prompt.
+
+**Nano Banana Pro** (type: "generator", subtype: "nano-banana-pro")
+Premium text-to-image. TEXT ONLY — no image-in handle. Sharper 2K output, better text rendering, stronger character consistency. Use as the default high-quality text-to-image model for stylized or artistic output. For reference image editing, use Nano Banana Pro Edit. For raw photographic realism, use Kora Reality.
+Key data fields: generatorType: "nano-banana-pro".
+Input handles: "prompt-in" (#f97316), "aspect-ratio-in" (#f59e0b), "resolution-in" (#22c55e), "num-images-in" (#8b5cf6).
+Output handles: "prompt-out" (#f97316), "output" (#ec4899).
+inputNode fields needed: prompt.
+
+**Nano Banana 2 Edit** (type: "generator", no subtype)
+Budget image editing. Accepts a text prompt plus optional reference images via image-in. Use for affordable image editing, style transfer, and generation from reference images. For higher quality, use Nano Banana Pro Edit.
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899), "aspect-ratio-in" (#f59e0b), "resolution-in" (#22c55e), "num-images-in" (#8b5cf6).
+Output handles: "prompt-out" (#f97316), "output" (#ec4899).
+inputNode fields needed: prompt, image_urls (optional).
+
+**Nano Banana Pro Edit** (type: "generator", subtype: "nano-banana-pro-edit")
+PREMIUM image editing. Up to 8 reference images. Supports inpainting, outpainting, background reconstruction, lighting adjustments, and style transfer. Sharper 2K output with intelligent 4K scaling. This is the go-to node for editing or transforming uploaded images. Use whenever the user uploads a photo and wants to modify, restyle, or composite it.
+Key data fields: generatorType: "nano-banana-pro-edit", output_format ("png" or "jpg").
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899), "aspect-ratio-in" (#f59e0b), "resolution-in" (#22c55e).
+Output handles: "prompt-out" (#f97316), "output" (#ec4899).
+inputNode fields needed: prompt, image_urls.
+
+**Kora Reality** (type: "generator", subtype: "kora")
+Photorealistic image generation. TEXT ONLY — no image-in handle. Best for raw photorealism: UGC-style selfies, lifestyle shots, uncensored photography, candid-feeling portraits. Use Kora when the output needs to look like a real camera photo. Choose Kora over Nano Banana Pro for UGC social aesthetics, photographic realism, or uncensored content. Resolution: HD or 2K.
+Key data fields: generatorType: "kora".
+Input handles: "prompt-in" (#f97316), "aspect-ratio-in" (#f59e0b), "resolution-in" (#22c55e), "num-images-in" (#8b5cf6).
+Output handles: "prompt-out" (#f97316), "output" (#ec4899).
+inputNode fields needed: prompt.
+
+**Seedream 5.0 Lite** (type: "generator", subtype: "seedream-5-lite")
+The CHEAPEST image generator with editing support. Works in both text-to-image and image editing mode (up to 14 reference images). quality: "basic" for 2K, "high" for 3K. Has an NSFW checker toggle. Use for budget workflows or batch processing where cost-per-image must be minimal.
+Key data fields: generatorType: "seedream-5-lite", quality ("basic"/"high"), nsfw_checker (boolean).
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+inputNode fields needed: prompt, image_urls (optional).
+
+**Qwen Image 2 Pro** (type: "generator", subtype: "qwen-image-edit")
+Intelligent AI-guided image editing by Alibaba. Takes 1-3 reference images plus a prompt. Understands spatial context: removes/adds specific objects, changes backgrounds, edits text in images, composites multiple images. Reference images in prompts as "image 1", "image 2", "image 3". Has uncensored mode. guidance_scale 4-7 gives best results. Use when the edit requires CONTENT UNDERSTANDING (removing objects, swapping elements, editing text in images) rather than simple style transfer.
+Key data fields: generatorType: "qwen-image-edit", guidance_scale (4.5 default), num_inference_steps (28 default), uncensored ("false" default).
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899), "num-images-in" (#8b5cf6).
+Output handle: "output" (#ec4899).
+inputNode fields needed: prompt, image_urls.
+
+**GPT Image 2** (type: "generator", subtype: "gpt-image-2")
+OpenAI GPT Image 2 for high-quality image editing and generation. Up to 16 reference images. Supports square/portrait/landscape aspect ratios and 1K/2K/4K output. Use when the user specifically wants OpenAI for image work or needs high-fidelity editing with many reference images.
+Key data fields: generatorType: "gpt-image-2", aspectRatio ("square"/"portrait"/"landscape"), resolution ("1K"/"2K"/"4K").
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899), "aspect-ratio-in" (#f59e0b), "resolution-in" (#22c55e).
+Output handles: "prompt-out" (#f97316), "output" (#ec4899).
+inputNode fields needed: prompt, image_urls (optional).
+
+**Background Removal** (type: "generator", subtype: "pixelcut-bg-removal")
+Removes backgrounds using Pixelcut. Outputs a transparent RGBA PNG. No prompt needed — image-in only. THE CHEAPEST processing node. Use for product cutouts, portrait isolation, and e-commerce catalog images. Common pipeline: Input → Background Removal → Nano Banana Pro Edit (composite onto new background).
+Key data fields: generatorType: "pixelcut-bg-removal".
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls.
+
+### Upscalers
+
+**Crisp Upscaler** (type: "generator", subtype: "crisp-upscaler")
+General image upscaling. Takes image-in and outputs a higher-resolution version. Configurable upscale_factor: 1-4 (default 2). Use as the standard upscaler after any image generator. For portraits and faces, Portrait Upscaler gives better results.
+Key data fields: generatorType: "crisp-upscaler", upscale_factor (2 default).
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+
+**Portrait Upscaler** (type: "generator", subtype: "portrait-upscaler")
+Face-focused upscaling with enhanced facial detail preservation. Use instead of Crisp Upscaler when the main subject is a face, headshot, selfie, or avatar. mode: "fast" or "professional" (default "professional").
+Key data fields: generatorType: "portrait-upscaler", mode ("professional" default).
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+
+**Image Upscaler** (type: "generator", subtype: "image-upscaler")
+General high-resolution upscaling. Alternative to Crisp Upscaler for general image quality enhancement.
+Key data fields: generatorType: "image-upscaler".
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+
+**Topaz Video Upscaler** (type: "generator", subtype: "topaz-video-upscaler")
+Video upscaling via Topaz Video AI. Accepts MP4, MOV, MKV (max 50MB). upscale_factor: 1, 2, or 4. Use when the user specifically asks for Topaz or needs simple factor control. For most video upscaling, Enhancor Video Upscale is the preferred default.
+Key data fields: generatorType: "topaz-video-upscaler", upscale_factor (2 default).
+Input handle: "video-in" (#a855f7).
+Output handle: "output" (#ec4899).
+inputNode fields needed: video_url.
+
+**Enhancor Video Upscale** (type: "generator", subtype: "enhancor-video-upscale")
+The RECOMMENDED video upscaler. Uses SeedVR2 AI with temporal consistency. Two modes: factor (multiply resolution 1-10x) or target (720p/1080p/1440p/2160p). Extra controls: noise_scale (0-1, lower = cleaner), output_format (mp4/webm/mov/gif), output_quality (low/medium/high/maximum). Default choice for all video upscaling tasks.
+Key data fields: generatorType: "enhancor-video-upscale", upscale_mode ("factor"/"target"), upscale_factor (2 default), target_resolution, noise_scale (0.1 default), output_format ("mp4"), output_quality ("high").
+Input handle: "video-in" (#a855f7).
+Output handle: "output" (#ec4899).
+inputNode fields needed: video_url.
+
+### Skin Fix
+
+**Enhancor V4 Base** (type: "generator", subtype: "enhancor-skinfix-v4-base")
+Skin fix AND upscale combined in one node. Acts as both retoucher and upscaler simultaneously. Use when the user wants a single-node portrait enhancement without chaining a separate upscaler. No extra configuration needed.
+Key data fields: generatorType: "enhancor-skinfix-v4-base".
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls.
+
+**Enhancor V4** (type: "generator", subtype: "enhancor-skinfix-v4")
+Latest skin fix and enhancement model. Two sub-modes: v4_fast (with enhancement_strength: subtle/realistic/pimple/freckle) and v4_base. Default: v4_fast + realistic. Use pimple for blemish targeting. Use freckle for stylistic freckle addition (set freckle_intensity: 0/50/100). Set fix_lighting_mode: true with realistic to also correct flat lighting. RECOMMENDED skin fix model for all new workflows.
+Key data fields: generatorType: "enhancor-skinfix-v4", model_version ("v4_fast" default), enhancement_strength ("realistic" default), freckle_intensity, fix_lighting_mode (boolean).
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls.
+
+**Enhancor V3** (type: "generator", subtype: "enhancor-skinfix-v3")
+Fine-grained skin control. Preset mode: high_end_skin (default), imperfect_skin, smooth_skin. Custom mode: skin_realism_Level (0-3), portrait_depth (0.2-0.4), output_resolution (1024-3072). enhancementType: "face" or "body". Use when specific preset styles or fine numeric control are needed. V4 is preferred for new workflows.
+Key data fields: generatorType: "enhancor-skinfix-v3", enhancementType ("face"), processing_mode ("preset"), preset_name ("high_end_skin").
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls.
+
+**Enhancor V1** (type: "generator", subtype: "enhancor-skinfix-v1")
+Original skin fix model. Controls: face/body target, standard/heavy mode, skin_realism_Level (0-5). Use for legacy compatibility or when specifically requested. V4 is preferred.
+Key data fields: generatorType: "enhancor-skinfix-v1", enhancementType ("face"), enhancementMode ("standard"), skin_realism_Level (0).
+Input handle: "image-in" (#ec4899).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls.
+
+### Video Models
+
+**Enhancor V4 UGC** (type: "generator", subtype: "enhancor-v4")
+Generates short UGC-style video clips from a text prompt and optional reference image. Best for social media content, product showcases, and casual lifestyle video.
+Key data fields: generatorType: "enhancor-v4".
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899).
+Output handle: "video-output" (#a855f7).
+inputNode fields needed: prompt, image_urls (optional).
+
+**Kling 3** (type: "generator", subtype: "kling-3")
+Versatile high-quality video generation, 3-15 seconds. Takes a text prompt and optional reference image. mode: "pro" or "standard". Enable kling_sound for synchronized audio. Set kling_aspect_ratio (16:9/9:16/1:1) when no image is connected. Multi-shot mode (kling_multi_shot: true + kling_multi_shot_prompts) chains multiple scene prompts for longer narrative videos. Use for cinematic video generation when the user wants creative scene control.
+Key data fields: generatorType: "kling-3", kling_mode ("pro"), kling_duration (8), kling_sound (boolean), kling_aspect_ratio ("16:9"), kling_multi_shot (boolean), kling_multi_shot_prompts.
+Input handles: "prompt-in" (#f97316), "image-in" (#ec4899).
+Output handle: "video-output" (#a855f7).
+inputNode fields needed: prompt, image_urls (optional).
+
+**Kling 3 Motion Control** (type: "generator", subtype: "kling-3-motion-control")
+Transfers motion from a reference video onto a character in a reference image. REQUIRES BOTH image-in (character) AND video-in (motion reference). Produces a video where the character performs the exact movements from the reference video. character_orientation: "image" (max 10s) or "video" (max 30s). Use for dance transfer, athletic motion mimicry, and character animation from video.
+CRITICAL: Both image-in and video-in MUST be connected for this node to work.
+Key data fields: generatorType: "kling-3-motion-control", character_orientation ("image"), mode ("720p").
+Input handles: "image-in" (#ec4899, required), "video-in" (#a855f7, required), "prompt-in" (#f97316, optional).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls, video_url.
+
+### Seedance 2.0 (type: "generator", subtype: "seedance-2.0")
 Seedance 2.0 is a state of the art video generation model specialising in hyper realistic talking avatars, UGC (user generated content) style social media videos, and cinematic sequences. It has industry leading lipsyncing accuracy and outstanding product accuracy, meaning objects, logos, and branded items stay true to the reference image throughout the entire video.
 
 Modes (set via sd2_mode):
@@ -947,28 +1154,98 @@ Modes (set via sd2_mode):
 - "first-n-last-frames" — controls both the opening and closing frame of the video.
 
 PROMPT WRITING for Seedance 2.0: Prompts should be specific about the subject, their motion or action, the setting, lighting conditions, and camera style. Example of a great prompt: "A confident woman in a bright modern apartment looks directly at the camera, gestures naturally while speaking, warm ambient lighting, shallow depth of field, handheld camera feel." For lipsyncing mode focus the prompt on appearance and setting only.
+Key data fields: generatorType: "seedance-2.0", sd2_mode, sd2_duration (5/10/15), sd2_aspect_ratio ("9:16"/"16:9"/"1:1"), sd2_pro_mode (boolean).
+Input handles: "image-in" (#ec4899), "prompt-in" (#f97316), "audio-in" (#06b6d4, for lipsyncing mode), "requestId-out" (output, #a855f7).
+Output handles: "video-output" (#a855f7), "requestId-out" (#a855f7, feeds into Extend node).
+inputNode fields needed: image_urls, prompt. For lipsyncing also include audio_url.
 
-Key data fields: sd2_mode, sd2_duration (5/10/15), sd2_aspect_ratio ("9:16"/"16:9"/"1:1"), sd2_pro_mode (boolean).
-inputNode field needed: image_urls (reference image), prompt. For lipsyncing also include audio_url.
+### Seedance 2.0 Extend (type: "generator", subtype: "seedance-2.0-extend")
+Extends an existing Seedance 2.0 generated video seamlessly, continuing motion and scene naturally from where the original clip ends. Preserves visual style and subject consistency perfectly.
 
-### Seedance 2.0 Extend (generatorType: "seedance-2.0-extend")
-Extends an existing Seedance 2.0 generated video seamlessly, continuing motion and scene naturally from where the original clip ends. It preserves visual style and subject consistency perfectly.
+CRITICAL WIRING RULE: This node MUST always be placed directly after a Seedance 2.0 node. The Seedance 2.0 node's "requestId-out" handle MUST be wired to this node's "requestId-in" handle. This is the ONLY valid upstream connection — never connect it from any other generator type.
 
-CRITICAL WIRING RULE: This node MUST always be placed directly after a Seedance 2.0 node. The Seedance 2.0 node's "requestId-out" handle MUST be wired to this node's "requestId-in" handle. This is the only valid upstream connection. Never add this node standalone or connect it from any other generator type.
+Use when the user wants a longer video, wants to continue a generated scene, or wants to chain multiple extensions.
+Key data fields: generatorType: "seedance-2.0-extend", sd2ext_duration (5/10/15), sd2ext_pro_mode (boolean).
+Input handle: "requestId-in" (#a855f7, MUST come from a Seedance 2.0 node's "requestId-out").
+Output handle: "video-output" (#a855f7).
 
-Use it when the user wants a longer video, wants to continue a generated scene, or wants to chain multiple extensions for maximum duration.
+Example edge: { "source": "<seedance-2.0-node-id>", "sourceHandle": "requestId-out", "target": "<extend-node-id>", "targetHandle": "requestId-in" }
 
-Key data fields: sd2ext_duration (5/10/15), sd2ext_pro_mode (boolean).
-No additional inputNode fields needed beyond those for the upstream Seedance 2.0 node.
-The output handle is "video-output".
+### Lipsync / Avatar
 
-Example edge wiring for an extend node:
-{ "source": "<seedance-2.0-node-id>", "sourceHandle": "requestId-out", "target": "<extend-node-id>", "targetHandle": "requestId-in" }
+**Enhancor V4 Lipsync** (type: "generator", subtype: "creatify-aurora")
+PREMIUM lipsync. Studio-quality talking head video from a portrait image plus an audio file. Highest fidelity lip-sync available. aurora_resolution: "480p" or "720p". aurora_guidance_scale: prompt influence (0-5). aurora_audio_guidance_scale: lip-sync adherence (0-5). Use when quality matters most: professional marketing, CEO presentations, online courses. Requires an external audio source — pair with ElevenLabs TTS for a full text-to-talking-head pipeline.
+Key data fields: generatorType: "creatify-aurora", aurora_resolution ("720p"), aurora_guidance_scale (1), aurora_audio_guidance_scale (2).
+Input handles: "image-in" (#ec4899, required), "audio-in" (#06b6d4, required).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls, audio_url.
+
+**Enhancor V3 Lipsync** (type: "generator", subtype: "fabric-lipsync")
+Budget lipsync with BUILT-IN TTS. Works with audio-in OR with fabric_text (built-in TTS, no separate TTS node needed). In TTS mode: set fabric_text and fabric_voice_description. In audio mode: connect audio-in. Use for quick content creation or when the user wants text-to-talking-video without a separate TTS node. For studio quality, use Enhancor V4 Lipsync.
+Key data fields: generatorType: "fabric-lipsync", fabric_resolution ("720p"), fabric_text (for TTS mode), fabric_voice_description.
+Input handles: "image-in" (#ec4899, required), "audio-in" (#06b6d4, optional — leave empty for TTS mode).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls. Add audio_url if using audio mode.
+
+**OmniHuman** (type: "generator", subtype: "infinitalk")
+Talking portrait with NATURAL HEAD MOTION and expressions. Takes a portrait image, audio (max 15s), and optional style prompt. The subject moves naturally (head turns, expressions, gestures) making it feel alive. Most affordable lipsync at 480p. Use when natural movement matters more than HD quality. Standard pipeline: ElevenLabs TTS → OmniHuman.
+Key data fields: generatorType: "infinitalk", infinitalk_resolution ("480p"/"720p"), infinitalk_seed (100000 default).
+Input handles: "image-in" (#ec4899, required), "audio-in" (#06b6d4, required), "prompt-in" (#f97316, optional).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls, audio_url.
+
+### Audio / TTS
+
+**ElevenLabs TTS** (type: "generator", subtype: "elevenlabs-tts")
+Single-speaker text-to-speech. 100+ realistic voices (Rachel, Aria, Roger, Sarah, Charlie, George, etc). Configurable: voice (name), stability (0-1), similarity_boost (0-1), speed (0.7-1.2). Use for voiceovers and any workflow where a specific voice is needed. Standard pipeline for talking video: Claude Haiku → ElevenLabs TTS → OmniHuman or Enhancor V4 Lipsync. For multi-speaker dialogue, use ElevenLabs Dialogue V3.
+Key data fields: generatorType: "elevenlabs-tts", voice ("Rachel"), stability (0.5), similarity_boost (0.75), speed (1.0).
+Input handle: "prompt-in" (#f97316, required — the text to speak).
+Output handle: "output" (#06b6d4).
+inputNode fields needed: prompt.
+
+**ElevenLabs Dialogue V3** (type: "generator", subtype: "elevenlabs-text-to-dialogue-v3")
+Multi-speaker dialogue generation. Automatically assigns different voices to different speakers. Supports 70+ languages. Use for podcasts, multi-character scenes, or any content with more than one speaker.
+Key data fields: generatorType: "elevenlabs-text-to-dialogue-v3", stability (0.5), language_code ("auto").
+Input handle: "prompt-in" (#f97316, required — the dialogue text).
+Output handle: "output" (#06b6d4).
+inputNode fields needed: prompt.
+
+**ElevenLabs Sound Effect** (type: "generator", subtype: "elevenlabs-sound-effect")
+Generates non-speech audio from text descriptions. Royalty-free, up to 22 seconds, 48kHz. Configurable: duration_seconds (0.5-22), loop (seamless looping for ambient sounds), prompt_influence (0-1). Use for game SFX, film foley, podcast intros, ambient soundscapes. For speech, use ElevenLabs TTS or Dialogue V3.
+Key data fields: generatorType: "elevenlabs-sound-effect", duration_seconds (5), loop (false), prompt_influence (0.3).
+Input handle: "prompt-in" (#f97316, required — sound description).
+Output handle: "output" (#06b6d4).
+inputNode fields needed: prompt.
+
+**ElevenLabs Audio Isolation** (type: "generator", subtype: "elevenlabs-audio-isolation")
+Removes background noise and isolates clean speech from audio. Input: noisy audio (max 10MB, MPEG/WAV/AAC/MP4/OGG). Output: cleaned speech. No prompt needed. Use before feeding audio into a lipsync node when the source is noisy.
+Key data fields: generatorType: "elevenlabs-audio-isolation".
+Input handle: "audio-in" (#06b6d4, required).
+Output handle: "output" (#06b6d4).
+inputNode fields needed: audio_url.
+
+### 3D Models
+
+**Hunyuan 3D v2.1** (type: "generator", subtype: "hunyuan3d-v21")
+Converts a single image into a 3D model (GLB mesh). The ONLY 3D generation node. Image-in only — no text prompt needed. Set textured_mesh: true for PBR color textures (3x cost) or false for white mesh (default). Use for product 3D modeling, game asset creation, and e-commerce 3D views.
+Key data fields: generatorType: "hunyuan3d-v21", num_inference_steps (50), guidance_scale (7.5), octree_resolution (256), textured_mesh (false).
+Input handle: "image-in" (#ec4899, required).
+Output handle: "output" (#ec4899).
+inputNode fields needed: image_urls.
+
+### Video Processing
+
+**Sora 2 Watermark Remover** (type: "generator", subtype: "sora-2-watermark-remover")
+Removes watermarks specifically from Sora 2 generated videos. Input must be a publicly accessible Sora 2 video URL from sora.chatgpt.com. Processing takes 1-3 seconds. Use ONLY for Sora 2 watermarks — it will not work correctly on other video types. upload_method: "s3" (default) or "oss" for Aliyun/China.
+Key data fields: generatorType: "sora-2-watermark-remover", upload_method ("s3").
+Input handle: "video-in" (#a855f7, required).
+Output handle: "output" (#ec4899).
+inputNode fields needed: video_url.
 
 ## TECHNICAL RULES
 
 1. Every workflow MUST have exactly one node with type "inputNode" and exactly one node with type "response".
-2. The inputNode's data.initialFields array determines what input fields appear. Pick from: image_urls, prompt, aspect_ratio, resolution, num_images, audio_url, video_url. Use _2 suffix for duplicates (e.g., image_urls_2 for a second image upload). Use audio_url for audio inputs and video_url for video inputs.
+2. The inputNode's data.initialFields array determines what input fields appear. Pick from: image_urls, prompt, aspect_ratio, resolution, num_images, audio_url, video_url. Use _2 suffix for duplicates (e.g., image_urls_2 for a second image upload).
 3. Edges connect a source node's output handle to a target node's input handle. Each edge needs: id, source, sourceHandle, target, targetHandle, type: "deletable", style: { stroke: "<color>" }.
 4. Edge stroke colors MUST match the SOURCE handle's color from the catalog.
 5. Node IDs should be descriptive (e.g., "gen-input", "gen-analyzer-1", "gen-generator").
@@ -976,10 +1253,10 @@ Example edge wiring for an extend node:
 7. For imageAnalyzer nodes, write DETAILED systemDirections (3-5 sentences minimum) specific to the user's task. Be an expert in the domain. Include what to look for, what format to output, and what details matter most.
 8. For promptAdapter nodes, write DETAILED systemDirections (3-5 sentences minimum) explaining the transformation logic. Describe what inputs to expect, how to combine them, and what the output prompt should look like for the downstream generator.
 9. The response node must be the rightmost node. Connect the final output(s) to it via the "images-in" handle.
-10. For generator nodes with a subtype, include the subtype's generatorType in data (e.g., data.generatorType = "kora"). Configure settings like aspect_ratio and num_images based on the use case. Available generator subtypes: kora, crisp-upscaler, portrait-upscaler, image-upscaler, skin-fix-v4, skin-fix-v3, skin-fix-v1, enhancor-v4-video, kling-3, seedance-2.0, seedance-2.0-extend.
-11. Nano Banana (no subtype) accepts image-in for reference images. Kora Reality (subtype: "kora") does NOT accept image-in — text-to-image only.
+10. For generator nodes with a subtype, include the subtype's generatorType in data. Available generator subtypes: nano-banana-2, nano-banana-pro, nano-banana-pro-edit, kora, seedream-5-lite, pixelcut-bg-removal, qwen-image-edit, gpt-image-2, crisp-upscaler, portrait-upscaler, image-upscaler, topaz-video-upscaler, enhancor-video-upscale, enhancor-skinfix-v4-base, enhancor-skinfix-v4, enhancor-skinfix-v3, enhancor-skinfix-v1, enhancor-v4, kling-3, kling-3-motion-control, creatify-aurora, fabric-lipsync, infinitalk, elevenlabs-tts, elevenlabs-text-to-dialogue-v3, elevenlabs-sound-effect, elevenlabs-audio-isolation, hunyuan3d-v21, sora-2-watermark-remover, seedance-2.0, seedance-2.0-extend.
+11. Nano Banana 2 Edit (no subtype) accepts image-in for reference images. Nano Banana 2, Nano Banana Pro, and Kora Reality do NOT accept image-in — text-to-image only.
 12. Include data.nodeNumber as a string ("1", "2", etc.) for each node, numbered left to right, top to bottom.
-13. CRITICAL: data.label MUST use the catalog's defaultData.label (e.g., "Claude Sonnet 4", "Claude Haiku 4.5", "Nano Banana 2 Edit", "Crisp Upscaler"). NEVER override data.label with custom names. Instead, put a short descriptive name in data.displayName (e.g., "Garment Structure Analyzer", "Tech Pack Synthesizer"). The UI will show the model name as the main title and the displayName as a subtitle below it.
+13. CRITICAL: data.label MUST use the catalog's defaultData.label (e.g., "Claude Sonnet Vision", "Claude Haiku 4.5", "Nano Banana 2 Edit", "Crisp Upscaler", "Enhancor V4 Lipsync"). NEVER override data.label with custom names. Instead, put a short descriptive name in data.displayName (e.g., "Garment Structure Analyzer", "Tech Pack Synthesizer"). The UI will show the model name as the main title and the displayName as a subtitle below it.
 14. The response node's data.responseFields should list each incoming connection as: { id: "<sourceId>-<sourceHandle>", label: "<descriptive label>", color: "<handle color>", source: { nodeId: "<sourceId>", nodeLabel: "<source node label>", handle: "<sourceHandle>" } }.
 15. When the user wants to analyze/understand an existing image, use imageAnalyzer. When they want to enhance a text prompt, use promptAdapter. When they want to generate a new image, use a generator.
 16. For promptAdapter receiving analysis from imageAnalyzer, set data.promptConnected to true so the analysis-in handle is available.
@@ -1146,6 +1423,108 @@ ${(needsStructuralChanges || needsFullRebuild) && catalog ? JSON.stringify(catal
 
 ## NODE DESCRIPTIONS
 
+### Input Nodes
+
+**Text Node**
+A standalone text node with a hardcoded text field and a text-out handle. Use it to feed a fixed text value into multiple downstream nodes, or as a configurable static prompt that doesn't come from the user. Connect text-out to any prompt-in handle. Good for providing a constant system message, brand voice, or style reference that multiple nodes share.
+
+**Image Node**
+A standalone image upload for providing fixed reference images directly on the canvas. Use it when a workflow needs a hardcoded reference (logo, style image, product shot) that is not uploaded by the user at runtime. Connect image-out to any image-in handle. Supports up to 3 images.
+
+**Audio Node**
+A standalone audio input. Connect audio-out to lipsync or TTS downstream nodes. Use when the audio file is a static reference rather than something the user uploads each run.
+
+**Video Node**
+A standalone video input. Connect video-out to video analysis or motion control nodes. Use when the video is a fixed reference file rather than user-uploaded.
+
+### LLM Nodes
+
+**Claude Haiku 4.5**
+The built-in prompt adapter. Fast, cheap, and excellent at turning short prompts into detailed image generation instructions. Use this as the standard prompt enhancer before any image generator when the user wants to improve their text prompt. Write systemDirections as detailed transformation instructions (e.g. "Convert the user's short concept into a detailed Nano Banana Pro generation prompt with lighting, composition, mood, and style"). Connect prompt-in from the Input Node's prompt handle and prompt-out into any generator's prompt-in. Enable the analysis-in handle by setting promptConnected: true in data so it can receive text from a vision analyzer and combine it with the user's prompt into one enhanced generation prompt.
+
+**Claude Sonnet Vision**
+The built-in image analyzer. Takes an image and outputs a detailed text analysis. Use it as the first step in any workflow that needs to understand an uploaded image before generating or editing. Write systemDirections to focus the analysis on what matters for the specific workflow (e.g. "Describe the clothing in precise detail for virtual try-on", "Identify the dominant color palette and lighting mood"). The analysis-out text feeds into Claude Haiku or directly into a generator's prompt-in. Standard pipeline: Input (image) → Claude Sonnet Vision → Claude Haiku → Generator.
+
+**OpenRouter Chat**
+Multi-model text LLM via OpenRouter. Supports 100+ models including GPT-5, Claude Opus 4.6, Gemini 2.5 Pro/Flash, Qwen, and more. Same role as Claude Haiku but with model flexibility. Default model: google/gemini-2.5-flash. Set reasoning: true for chain-of-thought tasks. Use this when the user wants a specific model for text processing or when Claude Haiku does not meet quality needs. Supports temperature (0-2) and max_tokens configuration.
+
+**OpenRouter Vision**
+Multi-model vision analyzer via OpenRouter. Same role as Claude Sonnet Vision but model-switchable. Default model: google/gemini-2.5-flash. Supports multiple images per analysis. Use for image analysis workflows where the user wants model flexibility or a non-Claude vision model (e.g. Gemini 2.5 Pro for complex visual reasoning).
+
+**OpenRouter Video**
+Video analysis via OpenRouter LLMs. Takes a video file (MP4, MPEG, MOV, WEBM) and a text prompt, outputs a detailed text analysis of the video content. Default model: google/gemini-2.5-flash. Use for video summarization, scene extraction, object detection, or content classification. Common pipeline: Video → OpenRouter Video → Claude Haiku → Response.
+
+### Image Generation
+
+**Nano Banana 2**
+Budget text-to-image. TEXT ONLY — has no image-in handle and does not accept reference images. The affordable option when the user wants to generate images from prompts without uploading a reference. Supports aspect_ratio, resolution (1K, 2K, 4K), and num_images. For editing or style transfer with a reference image, use Nano Banana 2 Edit instead. For premium text-to-image quality, use Nano Banana Pro.
+
+**Nano Banana Pro**
+Premium text-to-image. TEXT ONLY — no image-in handle. Sharper 2K output with intelligent 4K scaling, stronger text rendering inside images, and better character consistency than Nano Banana 2. Use this as the default high-quality text-to-image model for stylized or artistic output. For adding reference images, use Nano Banana Pro Edit. For raw photographic realism, use Kora Reality instead.
+
+**Nano Banana 2 Edit**
+Budget image editing. Accepts reference images via image-in plus a text prompt. The affordable option when the user needs to edit or transform an existing image. Good for style transfer, image variation, and composition. For higher quality editing, use Nano Banana Pro Edit.
+
+**Nano Banana Pro Edit**
+PREMIUM image editing and transformation. Up to 8 reference images, inpainting, outpainting, background reconstruction, lighting adjustments, and style transfer. Sharper 2K output with intelligent 4K scaling and strong character consistency. This is the go-to node for any workflow that needs to EDIT or TRANSFORM an uploaded image with a prompt. Use this whenever the user uploads a photo and wants to modify, restyle, or composite it. Common pipeline: Input (image) → NB Pro Edit or Input (image) → Vision → Haiku → NB Pro Edit.
+
+**Kora Reality**
+Photorealistic image generation. TEXT ONLY — no image-in handle. Specializes in raw photorealism: UGC-style selfies, lifestyle shots, candid-looking content, uncensored photography. Use Kora when the user wants output that looks like a real camera photo rather than AI art. Choose Kora over Nano Banana Pro when the output needs photographic realism, UGC social media aesthetics, or uncensored content. Resolution: HD or 2K.
+
+**Seedream 5.0 Lite**
+The CHEAPEST image generator with editing support. Works in both text-to-image (no image input) and image editing mode (up to 14 reference images). quality: "basic" for 2K output, "high" for 3K output. Has an NSFW checker toggle (visible on the node). Use this for budget-conscious workflows, batch processing, or when cost-per-image needs to be minimal. For higher quality, use Nano Banana Pro (text-only) or Nano Banana Pro Edit (image editing).
+
+**Qwen Image 2 Pro**
+Intelligent AI-guided image editing by Alibaba. Takes 1-3 reference images plus a text prompt. Understands spatial context: can remove or add specific objects, change backgrounds, edit text within images, and composite multiple images. Reference images in prompts as "image 1", "image 2", "image 3". Has an uncensored mode (set uncensored: "true" to disable the safety checker). guidance_scale 4-7 gives best results. Use Qwen when the edit requires understanding IMAGE CONTENT (e.g. "remove the person on the left", "add a shadow under the product") rather than simple style transfer. For pure style transfer, Nano Banana Pro Edit may be faster.
+
+**GPT Image 2**
+OpenAI's GPT Image 2 for high-quality image editing and generation. Up to 16 reference images. Supports square/portrait/landscape aspect ratios and 1K/2K/4K output. Use when the user specifically wants OpenAI for image work or needs a high-fidelity photorealistic edit with many reference images.
+
+**Background Removal**
+Removes backgrounds using Pixelcut. Outputs a transparent RGBA PNG. No prompt needed — image only. THE CHEAPEST processing node. Use for product cutouts, portrait isolation, and e-commerce catalog images. Common pipelines: Input → Background Removal → Nano Banana Pro Edit (composite onto new background), or Input → Background Removal → Response (deliver clean cutout). Always suggest this when a user asks about product photography or wants to isolate subjects.
+
+### Upscalers
+
+**Crisp Upscaler**
+General image upscaling. Takes image-in and outputs a higher resolution version. Configurable upscale_factor: 1 to 4 (default 2x). Use as the standard upscaler after any image generator when the user wants to improve resolution. For portrait and face images, Portrait Upscaler is a better choice.
+
+**Portrait Upscaler**
+Face-focused upscaling with better facial detail preservation than Crisp Upscaler. Use this instead of Crisp when the main subject is a face, headshot, selfie, or avatar. mode: "fast" or "professional" (default professional).
+
+**Image Upscaler**
+General high-resolution upscaling. Alternative to Crisp Upscaler. Use for general images where Crisp Upscaler is not available or preferred.
+
+**Topaz Video Upscaler**
+Video upscaling via Topaz Video AI. Accepts MP4, MOV, MKV (max 50MB). Upscale factor: 1x (enhance only), 2x, or 4x. Simple and straightforward. Use when the user specifically requests Topaz or needs simple factor control. For most video upscaling tasks, Enhancor Video Upscale is the preferred default.
+
+**Enhancor Video Upscale**
+The RECOMMENDED video upscaler. Uses SeedVR2 AI with temporal consistency. Two modes: factor mode (multiply resolution 1-10x) or target mode (upscale to 720p, 1080p, 1440p, or 2160p). Extra controls: noise_scale (0-1, lower = cleaner, higher = more detail), output_format (mp4/webm/mov/gif), output_quality (low/medium/high/maximum). This is the DEFAULT choice for any video upscaling task — suggest it over Topaz unless the user specifically asks for Topaz. Accepts video-in and outputs the upscaled video.
+
+### Skin Fix Nodes
+
+**Enhancor V4 Base**
+Skin fix AND upscale combined in one node (v4_base mode). Acts as both retoucher and upscaler simultaneously, giving a clean unified output without chaining a separate upscaler. Use this when the user wants a single-node portrait enhancement solution. Equivalent to the smooth_skin preset of V3 but newer. No extra configuration needed — just connect image-in.
+
+**Enhancor V4**
+Latest skin fix and enhancement model with two sub-modes: v4_fast (enhancement_strength: subtle/realistic/pimple/freckle) and v4_base. Use v4_fast + realistic for standard skin retouching. Use pimple mode for targeting blemishes specifically. Use freckle mode to stylistically add freckles. Set fix_lighting_mode: true with realistic to also correct flat or harsh lighting. freckle mode requires freckle_intensity (0, 50, or 100). This is the RECOMMENDED skin fix model for new workflows.
+
+**Enhancor V3**
+Fine-grained skin control. Preset mode: high_end_skin (default), imperfect_skin, smooth_skin. Custom mode: adjust skin_realism_Level (0-3), portrait_depth (0.2-0.4), output_resolution (1024-3072). enhancementType: "face" or "body". Use V3 when the user needs a specific preset style or fine numeric control that V4 does not expose. V4 is generally preferred for new workflows.
+
+**Enhancor V1**
+Original skin fix model. Simpler controls: face/body target, standard/heavy enhancement mode, skin_realism_Level (0-5). Use for legacy compatibility or when the user specifically requests it. V4 is preferred for all new use cases.
+
+### Video Models
+
+**Enhancor V4 UGC**
+Generates short UGC-style video clips from a text prompt and optional reference image. Best for social media content, product showcases, and lifestyle video. Use for quick, casual-feeling video generation.
+
+**Kling 3**
+Versatile high-quality video generation from 3 to 15 seconds. Takes a text prompt and optional reference image. mode: "pro" (higher quality) or "standard". Enable kling_sound to generate synchronized audio. Set kling_aspect_ratio (16:9, 9:16, 1:1) when no image is connected. Supports multi-shot mode (kling_multi_shot: true) with kling_multi_shot_prompts to string multiple scene prompts together. Use Kling 3 for general video generation when the user wants creative control over a scene or cinematic output. For photorealistic talking avatars and lipsync, use Seedance 2.0 instead.
+
+**Kling 3 Motion Control**
+Transfers motion from a reference video onto a character in a reference image. REQUIRES BOTH image-in (the character) AND video-in (the motion reference). Produces a video where the character performs the exact movements from the reference video. character_orientation: "image" (max 10 seconds) or "video" (max 30 seconds). mode: "720p" or "1080p". Use when the user wants a person from a photo to mimic movements from a video (dance transfer, athletic motion, walk cycle animation). For standard video without motion reference, use Kling 3.
+
 ### Seedance 2.0
 Seedance 2.0 is a state of the art video generation model. It excels at hyper realistic talking avatars, UGC (user generated content) style videos, and cinematic sequences. It has industry leading lipsyncing accuracy and outstanding product accuracy, meaning objects, logos, and branded items stay true to the reference image throughout the video. Use it whenever the user wants realistic human motion, talking head videos, avatar animation, or high fidelity product showcases.
 
@@ -1161,6 +1540,41 @@ PROMPT WRITING TIPS FOR SEEDANCE 2.0: Help the user write great prompts. Good se
 Seedance 2.0 Extend takes an existing Seedance 2.0 generated video and seamlessly extends it, continuing the motion and scene naturally. It MUST always be connected directly after a Seedance 2.0 node, using the requestId-out handle from the Seedance 2.0 node wired into the requestId-in handle of the Extend node. You cannot use Extend standalone or connect it to any other generator type.
 
 Use it when the user wants a longer video, wants to continue a scene, or wants to add more footage after an existing clip. It preserves all the visual style and subject consistency of the original generation.
+
+### Lipsync / Avatar
+
+**Enhancor V4 Lipsync (Creatify Aurora)**
+PREMIUM lipsync. Studio-quality talking head video from a portrait image plus an audio file. Highest fidelity lip-sync available in the catalog. aurora_resolution: "480p" or "720p". aurora_guidance_scale controls prompt influence (0-5). aurora_audio_guidance_scale controls lip-sync adherence (0-5). Use this when quality matters most: CEO presentations, professional marketing videos, online course narration. Requires external audio — pair with ElevenLabs TTS for a full text-to-talking-head pipeline. For budget lipsync with built-in TTS, use Enhancor V3 Lipsync. For natural head motion, use OmniHuman.
+
+**Enhancor V3 Lipsync (Fabric)**
+Budget lipsync with BUILT-IN TTS. Can work with an audio-in connection OR with just text using its internal TTS (no separate TTS node needed). In TTS mode: set fabric_text (the script) and fabric_voice_description (e.g. "deep male voice", "British accent"). In audio mode: connect audio-in and leave fabric_text empty. fabric_resolution: "480p" or "720p". Use this for quick content creation or when the user wants text-to-talking-video without setting up a separate TTS node. For studio quality, use Enhancor V4 Lipsync.
+
+**OmniHuman**
+Talking portrait with NATURAL HEAD MOTION and expressions. Takes a portrait image, an audio file (max 15 seconds), and an optional style prompt. The key differentiator: the subject moves naturally (head turns, facial expressions, gestures), making the video feel alive compared to static-head lipsync. Most affordable lipsync option at 480p. Configurable: infinitalk_resolution ("480p" or "720p"), infinitalk_seed. Use when natural movement and expressiveness matter more than HD resolution. Standard pipeline for animated portrait: ElevenLabs TTS → OmniHuman. For cleaning noisy audio first: Audio → ElevenLabs Audio Isolation → OmniHuman.
+
+### Audio / TTS
+
+**ElevenLabs TTS**
+Single-speaker text-to-speech. 100+ realistic voices (Rachel, Aria, Roger, Sarah, Charlie, George, and more). Configurable: voice (name), stability (0-1), similarity_boost (0-1), speed (0.7-1.2). Use for voiceovers, character narration, and any workflow where a specific named voice is needed. Standard pipeline for talking head video: Claude Haiku (script) → ElevenLabs TTS → OmniHuman or Enhancor V4 Lipsync. For multi-speaker dialogue, use ElevenLabs Dialogue V3. For sound effects, use ElevenLabs Sound Effect.
+
+**ElevenLabs Dialogue V3**
+Multi-speaker dialogue generation using ElevenLabs Eleven V3. Automatically assigns different voices to different speakers in the text. Supports 70+ languages. Configurable: stability (0-1), language_code (auto, en, fr, es, de, etc). Use for podcasts, game NPC dialogue, audiobook narration with multiple characters, or any content with more than one speaker. For single-speaker with voice selection, use ElevenLabs TTS.
+
+**ElevenLabs Sound Effect**
+Generates non-speech audio from text descriptions. Royalty-free, up to 22 seconds, 48kHz quality. Configurable: duration_seconds (0.5-22), loop (seamless looping for ambient sounds), prompt_influence (0-1, higher = closer to prompt). Use for game sound effects, film foley, podcast intros and outros, ambient soundscapes, notification sounds. This is for SOUND EFFECTS only. For voice, use ElevenLabs TTS or Dialogue V3.
+
+**ElevenLabs Audio Isolation**
+Removes background noise and isolates clean speech from an audio file. Input: noisy audio (MPEG, WAV, AAC, MP4, OGG, max 10MB). Output: cleaned speech. No prompt needed. Use this before feeding audio into a lipsync node when the source audio has background noise, music, or interference. Common pipeline: Audio → ElevenLabs Audio Isolation → OmniHuman or Enhancor V4 Lipsync.
+
+### 3D Models
+
+**Hunyuan 3D v2.1**
+Converts a single image into a 3D model (GLB mesh with PBR textures) using Tencent Hunyuan 3D v2.1. Image-in only — no text prompt needed, just connect the image. Configurable: num_inference_steps (1-50, default 50 for quality), guidance_scale (0-20, default 7.5), octree_resolution (1-1024, default 256 for mesh density), textured_mesh (adds PBR color textures at 3x cost — set true for colored output, false for white mesh). The ONLY 3D generation node in the catalog. Use for product 3D modeling, game asset creation, and e-commerce 3D views. Common pipeline: Input (image) → Hunyuan 3D v2.1 → Response.
+
+### Video Processing
+
+**Sora 2 Watermark Remover**
+Removes watermarks from Sora 2 generated videos. Input must be a publicly accessible Sora 2 video URL (originally from sora.chatgpt.com). Processing takes 1 to 3 seconds. Preserves every frame, motion flow, and audio sync. upload_method: "s3" (default) or "oss" for Aliyun/China access. Use ONLY for removing Sora 2 watermarks — it is specifically tuned for Sora 2 output and will not work correctly on other videos. For video quality enhancement, use Topaz Video Upscaler or Enhancor Video Upscale.
 
 ## YOUR CAPABILITIES
 
@@ -1212,7 +1626,7 @@ IMPORTANT: When adding a seedance-2.0-extend node, you MUST wire it from the ups
 
 ## RULES
 
-1. data.label MUST use catalog default labels (e.g., "Claude Sonnet Vision", "Claude Haiku 4.5", "OpenRouter Chat", "OpenRouter Vision", "OpenRouter Video", "Nano Banana 2", "Nano Banana Pro", "Nano Banana 2 Edit", "Nano Banana Pro Edit", "Seedream 5.0 Lite", "Kora Reality", "Background Removal", "Crisp Upscaler", "Portrait Upscaler", "Image Upscaler", "Topaz Video Upscaler", "Enhancor Video Upscale", "Enhancor V4 Base", "Enhancor V4", "Enhancor V3", "Enhancor V1"). Put descriptive names in data.displayName.
+1. data.label MUST use catalog default labels (e.g., "Claude Sonnet Vision", "Claude Haiku 4.5", "OpenRouter Chat", "OpenRouter Vision", "OpenRouter Video", "Nano Banana 2", "Nano Banana Pro", "Nano Banana 2 Edit", "Nano Banana Pro Edit", "Seedream 5.0 Lite", "Kora Reality", "Background Removal", "Crisp Upscaler", "Portrait Upscaler", "Image Upscaler", "Topaz Video Upscaler", "Enhancor Video Upscale", "Enhancor V4 Base", "Enhancor V4", "Enhancor V3", "Enhancor V1", "Enhancor V4 UGC", "Kling 3", "Kling 3 Motion Control", "Seedance 2.0", "Seedance 2.0 Extend", "Enhancor V4 Lipsync", "Enhancor V3 Lipsync", "OmniHuman", "ElevenLabs TTS", "ElevenLabs Dialogue V3", "ElevenLabs Sound Effect", "ElevenLabs Audio Isolation", "Hunyuan 3D v2.1", "Sora 2 Watermark Remover", "Qwen Image 2 Pro", "GPT Image 2"). Put descriptive names in data.displayName.
 2. Edge stroke colors must match the source handle color: image handles = #ec4899, text/prompt handles = #f97316, audio handles = #06b6d4, video handles = #a855f7, aspect_ratio = #f59e0b, resolution = #22c55e, num_images = #8b5cf6.
 3. Position new nodes logically: ~420px horizontal spacing between columns, ~350px vertical spacing for parallel nodes.
 4. Write detailed, expert-level systemDirections (3-5 sentences) when adding or updating analyzer/adapter nodes.
@@ -1225,6 +1639,10 @@ IMPORTANT: When adding a seedance-2.0-extend node, you MUST wire it from the ups
 11. When adding a new node, you MUST also add edges to connect it to the existing workflow. Never leave a node unconnected.
 12. seedance-2.0-extend MUST always be connected directly from a seedance-2.0 node via requestId-out → requestId-in. Never add it without this connection and never connect it to any other generator type.
 13. When a user asks about Seedance 2.0 prompts, give them specific, detailed guidance. Good prompts describe the subject clearly, the motion or action, the environment, lighting, and camera style. Offer to rewrite their prompt for them.
+14. When a user asks about lipsync, help them choose the right node: Enhancor V4 Lipsync for premium studio quality, Enhancor V3 Lipsync for built-in TTS convenience, OmniHuman for natural head motion. Always ask if they have audio already or need TTS.
+15. When a user asks about skin fix, recommend Enhancor V4 by default (v4_fast + realistic). Only suggest V3 or V1 if they need specific presets or legacy behavior.
+16. When a user asks about upscaling images, default to Crisp Upscaler for general images and Portrait Upscaler for faces. When upscaling video, always recommend Enhancor Video Upscale first.
+17. When a user wants to edit an image they upload, default to Nano Banana Pro Edit. Suggest Qwen Image 2 Pro only when the edit requires spatial/content understanding (removing objects, swapping faces, editing text in images).
 
 ## RESPONSE FORMAT
 You MUST respond with a JSON object (no markdown, no code fences) in exactly this format:
